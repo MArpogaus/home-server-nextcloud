@@ -1,18 +1,46 @@
 ---
 # Nextcloud service deployment — fully self-contained
-# Receives: service_name, service_user, service_uid, service_home, service_repo
+# Receives: service_name, service_user, service_home, service_repo
 
+# OCI repository names must be lowercase; podman only reports this at pull
+# time, which shows up as an endless container restart loop.
+- name: Assert the Nextcloud image reference is lowercase
+  ansible.builtin.assert:
+    that: nextcloud_app_image.split(':')[0] == nextcloud_app_image.split(':')[0] | lower
+    fail_msg: >-
+      nextcloud_app_image repository must be lowercase, got
+      '{{ nextcloud_app_image }}'. Fix nextcloud_image in secrets/vars.yml.
+
+# group matters as much as owner: a directory left in group root is unmapped
+# inside the rootless user namespace, so `podman unshare chown` on it fails
+# with EPERM and the app container cannot take ownership of its data dir.
 - name: Ensure service data directories
   ansible.builtin.file:
     path: "{{ service_home }}/{{ item }}"
     state: directory
     owner: "{{ service_user }}"
+    group: "{{ service_user }}"
     mode: '0755'
   loop:
     - data/db_data
     - data/data
     - data/config
     - bin
+    - .config/containers/systemd/configs
+
+# The image entrypoint rsyncs into /var/www/html and chowns the data and
+# config mount points to www-data (uid 33). That chown fails unless the host
+# directory already belongs to the subuid uid 33 maps to, and rsync then exits
+# 23 in a restart loop. podman unshare does the mapping arithmetic for us.
+- name: Own the Nextcloud data and config dirs as the container www-data user
+  ansible.builtin.command:
+    cmd: >-
+      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
+      --quiet podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+  loop:
+    - data
+    - config
+  changed_when: false
 
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
@@ -21,107 +49,57 @@
     owner: "{{ service_user }}"
     mode: '0755'
 
-- name: Template pg_dumpall systemd service
+- name: Template pg_dumpall systemd service and timer
   ansible.builtin.template:
-    src: pg-dumpall.service.j2
-    dest: /etc/systemd/system/pg-dumpall.service
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
     owner: root
     mode: '0644'
-
-- name: Template pg_dumpall systemd timer
-  ansible.builtin.template:
-    src: pg-dumpall.timer.j2
-    dest: /etc/systemd/system/pg-dumpall.timer
-    owner: root
-    mode: '0644'
+  loop:
+    - pg-dumpall.service
+    - pg-dumpall.timer
 
 - name: Enable and start pg_dumpall timer
   ansible.builtin.systemd:
     name: pg-dumpall.timer
     enabled: true
     state: started
-    scope: system
+    daemon_reload: true
 
 - name: Deploy static Quadlet files
   ansible.builtin.copy:
-    src: "{{ service_repo }}/quadlets/{{ item }}"
+    src: "{{ service_repo }}/quadlets/nc.pod"
     dest: "{{ service_home }}/.config/containers/systemd/"
     owner: "{{ service_user }}"
     group: "{{ service_user }}"
     mode: '0644'
-  loop:
-    - shared-network.network
-    - nc.pod
-    - promtail-nc.pod
+  notify: nextcloud quadlets changed
 
 - name: Template container Quadlet files
   ansible.builtin.template:
-    src: "{{ service_repo }}/quadlets/{{ item }}.container.j2"
-    dest: "{{ service_home }}/.config/containers/systemd/nextcloud-{{ item }}.container"
+    src: "{{ item }}"
+    dest: "{{ service_home }}/.config/containers/systemd/{{ item | basename | replace('.j2', '') }}"
     owner: "{{ service_user }}"
     group: "{{ service_user }}"
     mode: '0644'
+  loop: "{{ query('fileglob', service_repo ~ '/quadlets/*.container.j2') }}"
+  notify: nextcloud quadlets changed
+
+- name: Template config files
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ service_home }}/.config/containers/systemd/configs/{{ item.dest }}"
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: "{{ item.mode }}"
   loop:
-    - nextcloud-db
-    - nextcloud-redis
-    - nextcloud-app
-    - nextcloud-web
-    - nextcloud-cron
-    - nextcloud-push
-    - nextcloud-preview-generator
-    - promtail-nc
+    - { src: "{{ service_repo }}/quadlets/configs/nginx.conf.j2", dest: nginx.conf, mode: '0644' }
+    - { src: nextcloud.env.j2, dest: nextcloud.env, mode: '0600' }
+  notify: nextcloud quadlets changed
 
-- name: Ensure configs directory exists
-  ansible.builtin.file:
-    path: "{{ service_home }}/.config/containers/systemd/configs"
-    state: directory
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0755'
+- name: Apply quadlet changes now
+  ansible.builtin.meta: flush_handlers
 
-- name: Template promtail config
-  ansible.builtin.template:
-    src: "{{ service_repo }}/quadlets/configs/promtail-nc.yaml.j2"
-    dest: "{{ service_home }}/.config/containers/systemd/configs/promtail-nc.yaml"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0644'
-
-- name: Deploy static config files
-  ansible.builtin.copy:
-    src: "{{ service_repo }}/quadlets/configs/{{ item }}"
-    dest: "{{ service_home }}/.config/containers/systemd/configs/{{ item }}"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0644'
-  loop:
-    - docker.conf
-
-- name: Template nginx config
-  ansible.builtin.template:
-    src: "{{ service_repo }}/quadlets/configs/nginx.conf.j2"
-    dest: "{{ service_home }}/.config/containers/systemd/configs/nginx.conf"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0644'
-
-- name: Template nextcloud environment file
-  ansible.builtin.template:
-    src: "{{ service_repo }}/ansible-role/nextcloud_service/templates/nextcloud.env.j2"
-    dest: "{{ service_home }}/.config/containers/systemd/configs/nextcloud.env"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0600'
-
-- name: Reload systemd user daemon
-  ansible.builtin.command:
-    cmd: "machinectl shell {{ service_user }}@ /usr/bin/systemctl --user daemon-reload"
-  changed_when: true
-  failed_when: false
-
-- name: Restart user manager (triggers Quadlet generator and starts containers)
-  ansible.builtin.systemd:
-    name: "user@{{ service_uid }}.service"
-    state: restarted
-    scope: system
-  failed_when: false
+- name: Ensure nextcloud pod is running
+  ansible.builtin.command: systemctl --user -M nextcloud@ start nc-pod.service  # noqa: command-instead-of-module
+  changed_when: false

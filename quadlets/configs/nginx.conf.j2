@@ -52,7 +52,7 @@ http {
         '"server_protocol": "$server_protocol", '
         '"pipe": "$pipe", '
         '"gzip_ratio": "$gzip_ratio", '
-        '"http_cf_ray": "$http_cf_ray",'
+        '"http_cf_ray": "$http_cf_ray"'
         '}';
 
     access_log  /dev/stdout json_analytics;
@@ -70,7 +70,9 @@ http {
 
     upstream php-handler {
         zone backends 64k;
-        server localhost:9000;
+        # IPv4 literal, not `localhost`: php-fpm binds 0.0.0.0 and nginx would
+        # otherwise try ::1 first and answer 503.
+        server 127.0.0.1:9000;
     }
 
     server {
@@ -78,7 +80,7 @@ http {
         server_tokens off;
 
         add_header Strict-Transport-Security "max-age=15768000; includeSubDomains; preload;" always;
-        client_max_body_size {{ nextcloud_max_body_size | default('15G') }};
+        client_max_body_size {{ nextcloud_max_body_size }};
         client_body_timeout 300s;
         fastcgi_buffers 64 4K;
         client_body_buffer_size 512k;
@@ -162,7 +164,7 @@ http {
         }
 
         location ^~ /push/ {
-            proxy_pass http://localhost:7867/;
+            proxy_pass http://127.0.0.1:7867/;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "Upgrade";

@@ -1,8 +1,12 @@
 [Container]
 Image={{ nextcloud_redis_image }}
 ContainerName=nextcloud-redis
+PodmanArgs={{ nextcloud_service_redis_extra_args }}
 Pod=nc.pod
 AutoUpdate={{ nextcloud_service_auto_update }}
+HealthCmd=redis-cli ping
+HealthInterval=30s
+HealthOnFailure=kill
 
 [Service]
 Restart=on-failure

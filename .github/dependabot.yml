@@ -1,15 +1,26 @@
+---
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
-    target-branch: "dev"
-    open-pull-requests-limit: 10
+      interval: weekly
+    target-branch: dev
+    groups:
+      actions:
+        patterns: ['*']
 
-  - package-ecosystem: "docker"
-    directory: "/containers"
+  - package-ecosystem: pre-commit
+    directory: /
     schedule:
-      interval: "weekly"
-    target-branch: "dev"
-    open-pull-requests-limit: 5
+      interval: weekly
+    target-branch: dev
+    groups:
+      pre-commit:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directory: /containers
+    schedule:
+      interval: weekly
+    target-branch: dev

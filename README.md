@@ -1,103 +1,73 @@
 # service-nextcloud
 
-Nextcloud deployment with rootless Podman Quadlet, managed via Ansible.
+Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansible.
 
 ## Architecture
 
-7 containers on a `shared-network` bridge (10.89.0.0/24):
-
-| Service | Image | Role |
+| Container | Image | Role |
 |---|---|---|
-| nextcloud-db | postgres:15 | PostgreSQL database |
-| nextcloud-redis | redis:7 | Cache |
-| nextcloud-app | nextcloud:31-fpm | PHP-FPM application |
-| nextcloud-web | nginx:1.25 | Reverse proxy to app |
-| nextcloud-cron | nextcloud:31-fpm | Cron scheduler (`/cron.sh`) |
-| nextcloud-push | nextcloud:31-fpm | `notify_push` daemon |
-| nextcloud-preview-generator | nextcloud:31-fpm | Preview generation |
-| promtail-nc | grafana/promtail:3 | Log shipping sidecar |
+| nextcloud-db | postgres:15 | Database (`pg_isready` health check) |
+| nextcloud-redis | redis:7-alpine | Cache (`redis-cli ping`) |
+| nextcloud-app | ghcr.io/marpogaus/nextcloud:31 (custom, fpm) | PHP-FPM |
+| nextcloud-web | nginx:1-alpine | Serves the app; `status.php` health check covers the whole stack |
+| nextcloud-cron | custom image | `cron.php` every 5 min + `preview:pre-generate` every 10 min |
+| nextcloud-push | custom image | `notify_push` daemon |
 
-## Task Reference (13 tasks)
+The pod publishes `8080:80` on all interfaces so the Bunkerweb pod (another
+rootless user) can reach it via `host.containers.internal:8080`; firewalld
+blocks it from outside. Inside the pod everything uses `127.0.0.1`.
 
-| # | Module | Purpose | Rationale |
-|---|--------|---------|-----------|
-| 1 | `file` (loop 4) | Create data dirs (`db_data`, `data`, `config`, `bin`) | Pre-create volumes so Podman can mount them with correct selinux context |
-| 2 | `copy` | Deploy `pre-snapshot-pg-dump.sh` | System-level DB dump before Btrfs snapshot for crash-consistent backup |
-| 3-4 | `template` | Deploy `pg-dumpall.service` + `.timer` | Systemd oneshot on `OnCalendar=23:55` — DB dump before nightly snapshot |
-| 5 | `systemd` | Enable+start pg_dumpall timer | Activate the DB dump schedule |
-| 6 | `copy` (loop 4) | Deploy static Quadlet files (network, pod, promtail) | Shared network and pod definitions aren't templated |
-| 7 | `template` (loop 7) | Render `.container.j2` → `.container` | Per-container images, volumes, env files, extra args injected via Jinja2 |
-| 8 | `file` | Ensure `configs/` directory exists | Host path for bind-mounted config files |
-| 9 | `copy` (loop 2) | Deploy static configs (`promtail-nc.yaml`, `docker.conf`) | Sidecar log config, PHP-FPM pool settings |
-| 10 | `template` | Render `nginx.conf.j2` | Reverse proxy config with `client_max_body_size` |
-| 11 | `template` | Render `nextcloud.env.j2` (mode 0600) | Runtime env vars: DB creds, admin user, PHP tuning, trusted domains |
-| 12 | `command` | `machinectl shell ... systemctl --user daemon-reload` | Tell systemd user instance to re-read Quadlet files |
-| 13 | `systemd` | Restart `user@<uid>.service` | Triggers Quadlet generator → creates/starts/restarts containers |
-
-## Role Contract
-
-Inherited from `site.yml`:
-
-| Var | Description |
-|---|---|
-| `service_name` | `nextcloud` |
-| `service_user` | `nextcloud` |
-| `service_uid` | 82 (default) |
-| `service_home` | `/var/services/nextcloud` |
-| `service_repo` | `../service-nextcloud` |
+Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 
 ## Configuration
 
-| Aspect | Source |
+### Sizing (8 GB host)
+
+| Var | Default |
 |---|---|
-| DB creds, admin, PHP, domains | `nextcloud.env.j2` (templated from `secrets/vars.yml`) |
-| Per-container resource limits | `defaults/main.yml` via `nextcloud_service_*_extra_args` |
-| Image tags (app/cron/push/preview) | `nextcloud_image` var (default `nextcloud:31-fpm`) |
-| Auto-update policy | `nextcloud_service_auto_update` (default `registry`) |
-| Nginx upload limit | `nextcloud_max_body_size` (default `15G`) |
+| `nextcloud_php_max_children` | 8 |
+| `nextcloud_php_memory_limit` | 512M |
+| `nextcloud_service_app_extra_args` | `--memory=2G` + tmpfs `/tmp` |
+| `nextcloud_service_db_extra_args` | `--memory=768M` |
+| `nextcloud_service_cron_extra_args` | `--memory=768M` |
+| redis / web / push | 128M each |
 
-## Generalization Gaps
+### Secrets
 
-Still hardcoded (configurable only by editing files):
+DB credentials, admin user, trusted domains and PHP tuning come from
+`secrets/vars.yml` via `nextcloud.env.j2`. `nextcloud_trusted_proxies` defaults
+to RFC1918 + link-local because Bunkerweb's traffic arrives through the host.
 
-| What | Where | Hardcoded |
-|---|---|---|
-| Postgres image tag | `nextcloud-db.container.j2` | `postgres:15` |
-| Redis image tag | `nextcloud-redis.container.j2` | `redis:7` |
-| Nginx image tag | `nextcloud-web.container.j2` | `nginx:1.25` |
-| Promtail image tag | `promtail-nc.container` | `grafana/promtail:3` |
-| Host port | `nc.pod` | `127.0.0.1:8080:80` |
-| DB dump schedule | `pg-dumpall.timer.j2` | `OnCalendar=23:55:00` |
-| DB dump retention | `pre-snapshot-pg-dump.sh` | `-mtime +30` |
-| Loki endpoint | `promtail-nc.yaml` | `http://10.0.2.2:3100` |
-| Network subnet | `shared-network.network` | `10.89.0.0/24` |
-| Phone region | `phone.config.php` (in custom image) | `DE` |
-| Preview config | `prev.config.php` (in custom image) | 1024px, scale 1 |
+## Backups
 
-## Files
+`pg-dumpall.timer` (23:55) dumps the DB into `data/db_dumps/` so the nightly
+Btrfs snapshot (00:00, from `ansible-base`) is consistent. Dumps older than
+30 days are pruned.
 
-```
-service-nextcloud/
-  ansible-role/nextcloud_service/
-    defaults/main.yml         # Role variables
-    tasks/main.yml            # 13 tasks
-    templates/                # nextcloud.env.j2, nginx.conf.j2, pg-dumpall.*.j2
-    files/                    # Config PHP files, promtail, pre-snapshot script
-  quadlets/
-    nc.pod                    # Pod: publishes 127.0.0.1:8080:80
-    shared-network.network    # Bridge 10.89.0.0/24
-    nextcloud-*.container.j2  # 7 templated container files
-    promtail-nc.container     # Static log shipper
-    configs/                  # Static configs + templates
-  containers/                 # Custom Nextcloud image (Containerfile, build scripts)
-  .github/workflows/          # CI/CD image build + push
-```
+## Role Contract
 
-## Deployment
+Inherited from `site.yml`: `service_name`, `service_user`, `service_uid`,
+`service_home`, `service_repo`. File tasks notify `nextcloud quadlets changed`
+(daemon-reload + pod restart only when something changed).
+
+## Custom image
+
+`containers/Containerfile` adds ffmpeg/ghostscript, `configure.sh` (PHP-FPM
+pool sizing from `PHP_MAX_CHILDREN`), `notify_push.sh`, `previewgenerator.sh`
+and config drop-ins. Built and signed by GitHub Actions, verified via cosign
+policy on the host.
+
+## Development
 
 ```bash
-ansible-playbook -i inventory site.yml --tags nextcloud_service
+pre-commit install --install-hooks -t pre-commit -t commit-msg -t pre-push
 ```
+
+Plain `pre-commit install` wires up only the pre-commit stage, so the
+commitizen message and branch checks stay dormant. Hooks: shellcheck,
+ansible-lint (which owns YAML style here), commitizen for conventional commits.
+CI runs the same set on push and pull request. Actions are pinned to SHAs, and
+dependabot updates actions and hook revisions weekly against `dev`.
 
 ## License
 

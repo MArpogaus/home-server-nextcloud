@@ -1,8 +1,5 @@
-[Unit]
-Wants=shared-network-network.service
-After=shared-network-network.service
-
 [Pod]
 PodName=nc
-Network=shared-network
-PublishPort=127.0.0.1:8080:80
+# Published on all interfaces: Bunkerweb (another rootless user) reaches it via
+# host.containers.internal. firewalld only allows 22/80/443 from outside.
+PublishPort=8080:80

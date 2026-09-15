@@ -6,6 +6,10 @@ Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
 PodmanArgs={{ nextcloud_service_db_extra_args }}
 Pod=nc.pod
 AutoUpdate={{ nextcloud_service_auto_update }}
+HealthCmd=pg_isready -U {{ nextcloud_db_user }}
+HealthInterval=30s
+HealthStartPeriod=60s
+HealthOnFailure=kill
 
 [Service]
 Restart=on-failure

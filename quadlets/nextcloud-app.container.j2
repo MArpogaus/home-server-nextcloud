@@ -4,11 +4,9 @@ ContainerName=nextcloud-app
 EnvironmentFile=./configs/nextcloud.env
 PodmanArgs={{ nextcloud_service_app_extra_args }}
 Volume=nc-app-html:/var/www/html:z
-Volume=nc-app-logs:/var/log/nextcloud:z
 Volume=nc-app-apps:/var/www/html/custom_apps:z
-Volume={{ service_home }}/data/data:/var/www/html/data:idmap,z
-Volume={{ service_home }}/data/config:/var/www/html/config:idmap,z
-Volume=./configs/docker.conf:/usr/local/etc/php-fpm.d/docker.conf:ro,z
+Volume={{ service_home }}/data/data:/var/www/html/data:z
+Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
 AutoUpdate={{ nextcloud_service_auto_update }}
 

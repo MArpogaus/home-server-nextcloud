@@ -1,14 +1,15 @@
 [Container]
 Image={{ nextcloud_app_image }}
 ContainerName=nextcloud-cron
+EnvironmentFile=./configs/nextcloud.env
 PodmanArgs={{ nextcloud_service_cron_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume=nc-app-apps:/var/www/html/custom_apps:z
-Volume=nc-app-logs:/var/log/nextcloud:z
-Volume={{ service_home }}/data/data:/var/www/html/data:idmap,z
-Volume={{ service_home }}/data/config:/var/www/html/config:idmap,z
+Volume={{ service_home }}/data/data:/var/www/html/data:z
+Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
-Exec=/cron.sh
+# Sets up the previewgenerator app, then runs cron.sh (cron.php + preview:pre-generate)
+Entrypoint=/previewgenerator.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
 
 [Unit]

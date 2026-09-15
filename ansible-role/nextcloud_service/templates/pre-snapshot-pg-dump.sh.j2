@@ -16,7 +16,7 @@ if [ -z "$DB_PASSWORD" ]; then
   exit 1
 fi
 
-podman exec -e PGPASSWORD="${DB_PASSWORD}}" {{ nextcloud_db_container | default('nextcloud-db') }} pg_dumpall -U {{ nextcloud_db_user | default('nextcloud') }} \
+podman exec -e PGPASSWORD="${DB_PASSWORD}" nextcloud-db pg_dumpall -U {{ nextcloud_db_user }} \
   > "${DUMP_DIR}/dump-${TIMESTAMP}.sql"
 
 echo "Dump saved: ${DUMP_DIR}/dump-${TIMESTAMP}.sql ($(wc -c < "${DUMP_DIR}/dump-${TIMESTAMP}.sql") bytes)"

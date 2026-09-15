@@ -4,26 +4,41 @@ nextcloud_service_auto_update: "registry"
 # Image tags
 nextcloud_app_image: "{{ nextcloud_image | default('ghcr.io/marpogaus/nextcloud:31') }}"
 nextcloud_db_image: "docker.io/library/postgres:15"
-nextcloud_redis_image: "docker.io/library/redis:7"
-nextcloud_nginx_image: "docker.io/library/nginx:1.25"
-nextcloud_promtail_image: "docker.io/grafana/promtail:3"
+nextcloud_redis_image: "docker.io/library/redis:7-alpine"
+nextcloud_nginx_image: "docker.io/library/nginx:1-alpine"
 
-# Container names for cross-references
-nextcloud_db_container: nextcloud-db
-nextcloud_redis_container: nextcloud-redis
-nextcloud_app_container: nextcloud-app
-nextcloud_web_container: nextcloud-web
+# Resource ceilings, sized for an 8 GB host. Real usage is far lower; these
+# only stop a runaway container from taking the box down.
+nextcloud_service_db_extra_args: "--memory=768M"
+nextcloud_service_redis_extra_args: "--memory=128M"
+nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec"
+nextcloud_service_web_extra_args: "--memory=128M"
+nextcloud_service_cron_extra_args: "--memory=768M"
+nextcloud_service_push_extra_args: "--memory=128M"
 
-# Resource limits
-nextcloud_service_db_extra_args: "--memory=4G"
-nextcloud_service_redis_extra_args: ""
-nextcloud_service_app_extra_args: "--memory=6G --mount type=tmpfs,destination=/tmp:exec"
-nextcloud_service_web_extra_args: ""
-nextcloud_service_cron_extra_args: "--memory=1G"
-nextcloud_service_push_extra_args: "--memory=512M"
-nextcloud_service_preview_extra_args: "--memory=2G --cpus=1"
-# Script configuration
-nextcloud_notify_push_arch: "x86_64"
+# Required, no default: nextcloud_db_password, nextcloud_admin_password
+nextcloud_db_name: nextcloud
 nextcloud_db_user: nextcloud
+nextcloud_admin_user: admin
+nextcloud_trusted_domains: "cloud.example.com"
+nextcloud_url: "https://{{ nextcloud_trusted_domains.split(',')[0] | trim }}"
 
-nextcloud_service_loki_url: "http://10.0.2.2:3100"
+# Bunkerweb reaches this pod through the host (rootless users have separate
+# networks), so its traffic arrives from a LAN or link-local address.
+nextcloud_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
+
+# PHP (per-process memory_limit x max_children is the real RAM budget)
+nextcloud_php_max_children: 8
+nextcloud_php_memory_limit: 512M
+nextcloud_php_max_requests: 500
+nextcloud_php_max_execution_time: 3600
+nextcloud_php_upload_limit: 15G
+nextcloud_php_max_file_uploads: 100
+nextcloud_php_emergency_restart_threshold: 10
+nextcloud_php_emergency_restart_interval: 1m
+nextcloud_php_process_control_timeout: 10s
+
+# Nginx upload ceiling; keep >= nextcloud_php_upload_limit
+nextcloud_max_body_size: 15G
+
+nextcloud_notify_push_arch: "x86_64"

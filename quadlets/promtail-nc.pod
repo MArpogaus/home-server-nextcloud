@@ -1,3 +1,0 @@
-[Pod]
-PodName=promtail-nc
-PodmanArgs=--network slirp4netns:allow_host_loopback=true
