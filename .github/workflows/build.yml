@@ -13,6 +13,13 @@ permissions: {}
 jobs:
   build:
     strategy:
+      # Every matrix job also pushes and then verifies the `latest` tag. Run in
+      # parallel and they overwrite each other's digest between sign and
+      # verify, which fails as "no signatures found". Serialised, the last
+      # entry wins `latest`, which is also the semantics we want.
+      max-parallel: 1
+      # One version failing should not cancel the others.
+      fail-fast: false
       matrix:
         tag: [31, 32, 33, 34]
     permissions:
