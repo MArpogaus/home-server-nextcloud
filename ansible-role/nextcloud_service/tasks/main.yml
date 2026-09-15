@@ -25,6 +25,7 @@
     - data/db_data
     - data/data
     - data/config
+    - data/custom_apps
     - bin
     - .config/containers/systemd/configs
 
@@ -40,6 +41,7 @@
   loop:
     - data
     - config
+    - custom_apps
   changed_when: false
 
 # Podman secrets rather than environment variables: the values are then absent
@@ -119,3 +121,27 @@
 - name: Ensure nextcloud pod is running
   ansible.builtin.command: systemctl --user -M nextcloud@ start nc-pod.service  # noqa: command-instead-of-module
   changed_when: false
+
+# The image applies NEXTCLOUD_TRUSTED_DOMAINS only inside its first-run install
+# branch, so a domain added later never reaches config.php and every proxied
+# request fails with "Trusted domain error". Enforce it here instead, where it
+# is declarative and idempotent.
+- name: Wait for Nextcloud to finish installing
+  ansible.builtin.command: >-
+    systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
+    podman exec -u www-data nextcloud-app php /var/www/html/occ status --output=json
+  register: nextcloud_status
+  until: '"\"installed\":true" in nextcloud_status.stdout'
+  retries: 60
+  delay: 10
+  changed_when: false
+
+- name: Ensure the configured domains are trusted
+  ansible.builtin.command: >-
+    systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
+    podman exec -u www-data nextcloud-app php /var/www/html/occ
+    config:system:set trusted_domains {{ idx + 1 }} --value={{ item | trim }}
+  loop: "{{ nextcloud_trusted_domains.split(',') }}"
+  loop_control:
+    index_var: idx
+  changed_when: true

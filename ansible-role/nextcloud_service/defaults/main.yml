@@ -10,7 +10,10 @@ nextcloud_nginx_image: "docker.io/library/nginx:1-alpine"
 # Resource ceilings, sized for an 8 GB host. Real usage is far lower; these
 # only stop a runaway container from taking the box down.
 nextcloud_service_db_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
-nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges --cap-drop=ALL"
+# No --cap-drop=ALL here: the redis entrypoint uses setpriv to drop from
+# root to the redis user, which needs CAP_SETUID and CAP_SETGID. Dropping
+# everything makes it exit 127 on "setresuid failed".
+nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_cron_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
@@ -41,4 +44,5 @@ nextcloud_php_process_control_timeout: 10s
 # Nginx upload ceiling; keep >= nextcloud_php_upload_limit
 nextcloud_max_body_size: 15G
 
+nextcloud_db_dump_retention_days: 30
 nextcloud_notify_push_arch: "x86_64"

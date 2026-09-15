@@ -1,25 +1,27 @@
 #!/bin/bash
-# Pre-snapshot PostgreSQL dump — runs as nextcloud user
-# Dumps all databases to the data subvolume so Btrfs snapshot captures it.
+# Pre-snapshot PostgreSQL dump — runs as the nextcloud user.
+# Dumps into the data subvolume so the nightly Btrfs snapshot captures a
+# consistent copy of the database rather than its on-disk files mid-write.
 set -euo pipefail
 
 DUMP_DIR="${HOME}/data/db_dumps"
 TIMESTAMP="$(date +%F-%H%M%S)"
-ENV_FILE="${HOME}/.config/containers/systemd/configs/nextcloud.env"
+DUMP_FILE="${DUMP_DIR}/dump-${TIMESTAMP}.sql"
 
 mkdir -p "$DUMP_DIR"
 
-DB_PASSWORD=$(grep '^POSTGRES_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)
+# No password needed: this connects over the container's local Unix socket,
+# which the postgres image trusts. Reading the podman secret here would put the
+# password back into a process argument, which is what the secret avoids.
+podman exec -u postgres nextcloud-db \
+	pg_dumpall -U {{ nextcloud_db_user }} > "$DUMP_FILE"
 
-if [ -z "$DB_PASSWORD" ]; then
-  echo "ERROR: POSTGRES_PASSWORD not found in $ENV_FILE" >&2
-  exit 1
+if [ ! -s "$DUMP_FILE" ]; then
+	echo "ERROR: dump is empty, removing ${DUMP_FILE}" >&2
+	rm -f "$DUMP_FILE"
+	exit 1
 fi
 
-podman exec -e PGPASSWORD="${DB_PASSWORD}" nextcloud-db pg_dumpall -U {{ nextcloud_db_user }} \
-  > "${DUMP_DIR}/dump-${TIMESTAMP}.sql"
+echo "Dump saved: ${DUMP_FILE} ($(wc -c < "$DUMP_FILE") bytes)"
 
-echo "Dump saved: ${DUMP_DIR}/dump-${TIMESTAMP}.sql ($(wc -c < "${DUMP_DIR}/dump-${TIMESTAMP}.sql") bytes)"
-
-# Prune dumps older than 30 days
-find "$DUMP_DIR" -name 'dump-*.sql' -mtime +30 -delete
+find "$DUMP_DIR" -name 'dump-*.sql' -mtime +{{ nextcloud_db_dump_retention_days }} -delete
