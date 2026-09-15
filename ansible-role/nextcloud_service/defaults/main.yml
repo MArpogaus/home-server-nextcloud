@@ -9,12 +9,12 @@ nextcloud_nginx_image: "docker.io/library/nginx:1-alpine"
 
 # Resource ceilings, sized for an 8 GB host. Real usage is far lower; these
 # only stop a runaway container from taking the box down.
-nextcloud_service_db_extra_args: "--memory=768M"
-nextcloud_service_redis_extra_args: "--memory=128M"
-nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec"
-nextcloud_service_web_extra_args: "--memory=128M"
-nextcloud_service_cron_extra_args: "--memory=768M"
-nextcloud_service_push_extra_args: "--memory=128M"
+nextcloud_service_db_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges --cap-drop=ALL"
+nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_cron_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 
 # Required, no default: nextcloud_db_password, nextcloud_admin_password
 nextcloud_db_name: nextcloud

@@ -2,6 +2,8 @@
 Image={{ nextcloud_app_image }}
 ContainerName=nextcloud-app
 EnvironmentFile=./configs/nextcloud.env
+Secret=nextcloud_db_password,type=mount,target=/run/secrets/nextcloud_db_password
+Secret=nextcloud_admin_password,type=mount,target=/run/secrets/nextcloud_admin_password
 PodmanArgs={{ nextcloud_service_app_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume=nc-app-apps:/var/www/html/custom_apps:z

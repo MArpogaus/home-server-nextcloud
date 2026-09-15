@@ -42,6 +42,22 @@
     - config
   changed_when: false
 
+# Podman secrets rather than environment variables: the values are then absent
+# from `podman inspect` and from /proc/<pid>/environ. Both images accept the
+# *_FILE convention. no_log so the value never reaches the Ansible output.
+- name: Create podman secrets for the Nextcloud passwords
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      printf '%s' '{{ item.value }}' |
+      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
+      --quiet podman secret create --replace {{ item.name }} -
+  loop:
+    - {name: nextcloud_db_password, value: "{{ nextcloud_db_password }}"}
+    - {name: nextcloud_admin_password, value: "{{ nextcloud_admin_password }}"}
+  changed_when: true
+  no_log: true
+
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
     src: pre-snapshot-pg-dump.sh.j2
