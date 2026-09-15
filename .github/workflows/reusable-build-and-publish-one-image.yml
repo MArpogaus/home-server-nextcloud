@@ -53,11 +53,11 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0   # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
 
       - name: Build and Push Image
         id: build
-        uses: MArpogaus/image-builder-action@d7d88fae93411f854880f50474cec36936a74ef4 # v1.5.0
+        uses: MArpogaus/image-builder-action@a8819dcffeebb3c126f5e372711ebe0df484f360 # v1.5.2
         with:
           image-name: ${{ inputs.image-name }}
           containerfile: ${{ inputs.containerfile }}
