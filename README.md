@@ -25,8 +25,8 @@ Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 
 | Var | Default |
 |---|---|
-| `nextcloud_php_max_children` | 8 |
-| `nextcloud_php_memory_limit` | 512M |
+| `nextcloud_service_php_max_children` | 8 |
+| `nextcloud_service_php_memory_limit` | 512M |
 | `nextcloud_service_app_extra_args` | `--memory=2G` + tmpfs `/tmp` |
 | `nextcloud_service_db_extra_args` | `--memory=768M` |
 | `nextcloud_service_cron_extra_args` | `--memory=768M` |
@@ -35,7 +35,7 @@ Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 ### Secrets
 
 DB credentials, admin user, trusted domains and PHP tuning come from
-`secrets/vars.yml` via `nextcloud.env.j2`. `nextcloud_trusted_proxies` defaults
+`secrets/vars.yml` via `nextcloud.env.j2`. `nextcloud_service_trusted_proxies` defaults
 to RFC1918 + link-local because Bunkerweb's traffic arrives through the host.
 
 ## Backups

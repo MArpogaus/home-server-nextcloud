@@ -5,7 +5,7 @@ After=nextcloud-app.service
 Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-push
 EnvironmentFile=./configs/nextcloud.env
-Secret=nextcloud_db_password,type=mount,target=/run/secrets/nextcloud_db_password
+Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
 PodmanArgs={{ nextcloud_service_push_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
@@ -14,6 +14,11 @@ Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
 Entrypoint=/notify_push.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
+# notify_push answers 404 on /, which still proves the listener is up.
+HealthCmd=curl -s -o /dev/null http://127.0.0.1:7867/
+HealthInterval=60s
+HealthStartPeriod=120s
+HealthOnFailure=kill
 
 [Service]
 Restart=on-failure

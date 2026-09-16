@@ -14,7 +14,7 @@ mkdir -p "$DUMP_DIR"
 # which the postgres image trusts. Reading the podman secret here would put the
 # password back into a process argument, which is what the secret avoids.
 podman exec -u postgres nextcloud-db \
-	pg_dumpall -U {{ nextcloud_db_user }} > "$DUMP_FILE"
+	pg_dumpall -U {{ nextcloud_service_db_user }} > "$DUMP_FILE"
 
 if [ ! -s "$DUMP_FILE" ]; then
 	echo "ERROR: dump is empty, removing ${DUMP_FILE}" >&2
@@ -24,4 +24,4 @@ fi
 
 echo "Dump saved: ${DUMP_FILE} ($(wc -c < "$DUMP_FILE") bytes)"
 
-find "$DUMP_DIR" -name 'dump-*.sql' -mtime +{{ nextcloud_db_dump_retention_days }} -delete
+find "$DUMP_DIR" -name 'dump-*.sql' -mtime +{{ nextcloud_service_db_dump_retention_days }} -delete

@@ -9,7 +9,7 @@
     that: nextcloud_service_app_image.split(':')[0] == nextcloud_service_app_image.split(':')[0] | lower
     fail_msg: >-
       nextcloud_service_app_image repository must be lowercase, got
-      '{{ nextcloud_service_app_image }}'. Fix nextcloud_image in secrets/vars.yml.
+      '{{ nextcloud_service_app_image }}'. Fix nextcloud_service_app_image in secrets/vars.yml.
 
 # group matters as much as owner: a directory left in group root is unmapped
 # inside the rootless user namespace, so `podman unshare chown` on it fails
@@ -55,8 +55,8 @@
       systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
       --quiet podman secret create --replace {{ item.name }} -
   loop:
-    - {name: nextcloud_db_password, value: "{{ nextcloud_db_password }}"}
-    - {name: nextcloud_admin_password, value: "{{ nextcloud_admin_password }}"}
+    - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}
+    - {name: nextcloud_service_admin_password, value: "{{ nextcloud_service_admin_password }}"}
   changed_when: true
   no_log: true
   # podman secret create --replace does not restart consumers, so without this
@@ -151,7 +151,7 @@
     systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
     podman exec -u www-data nextcloud-app php /var/www/html/occ
     config:system:set trusted_domains {{ idx + 1 }} --value={{ item | trim }}
-  loop: "{{ nextcloud_trusted_domains.split(',') }}"
+  loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
   loop_control:
     index_var: idx
   changed_when: true

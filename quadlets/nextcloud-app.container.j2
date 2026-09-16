@@ -6,8 +6,8 @@ After=nextcloud-db.service nextcloud-redis.service
 Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-app
 EnvironmentFile=./configs/nextcloud.env
-Secret=nextcloud_db_password,type=mount,target=/run/secrets/nextcloud_db_password
-Secret=nextcloud_admin_password,type=mount,target=/run/secrets/nextcloud_admin_password
+Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+Secret=nextcloud_service_admin_password,type=mount,target=/run/secrets/nextcloud_service_admin_password
 PodmanArgs={{ nextcloud_service_app_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z

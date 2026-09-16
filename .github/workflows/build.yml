@@ -27,7 +27,9 @@ jobs:
       actions: read
       packages: write
       id-token: write
-    uses: ./.github/workflows/reusable-build-and-publish-one-image.yml
+    # Upstream directly rather than a vendored copy: the fork had already
+    # drifted (different pinned checkout) and had to be synced by hand.
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@9060cddfa5998c2bf2e2c6a5df4fa1d6607a075c
     with:
       image-name: nextcloud
       containerfile: ./containers/Containerfile
