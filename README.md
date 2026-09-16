@@ -13,9 +13,11 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 | nextcloud-cron | custom image | `cron.php` every 5 min + `preview:pre-generate` every 10 min |
 | nextcloud-push | custom image | `notify_push` daemon |
 
-The pod publishes `8080:80` on all interfaces so the Bunkerweb pod (another
-rootless user) can reach it at the host address on 8080; firewalld
-blocks it from outside. Inside the pod everything uses `127.0.0.1`.
+The pod publishes `8080` on loopback only. Bunkerweb runs as a different
+rootless user with its own container network, but it reaches the host through
+pasta's host-loopback mapping, so it does not need this bound any wider. Inside
+the pod everything uses `127.0.0.1`, because containers in a pod share a
+network namespace and bind IPv4 only.
 
 Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 
