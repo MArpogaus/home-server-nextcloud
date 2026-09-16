@@ -19,6 +19,12 @@ nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt
 nextcloud_service_cron_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 
+# Passwords are kept as podman secrets, not environment variables, so they do
+# not appear in `podman inspect` or /proc/<pid>/environ.
+nextcloud_service_secrets:
+  - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}
+  - {name: nextcloud_service_admin_password, value: "{{ nextcloud_service_admin_password }}"}
+
 # Required, no default: nextcloud_service_db_password, nextcloud_service_admin_password
 nextcloud_service_db_name: nextcloud
 nextcloud_service_db_user: nextcloud

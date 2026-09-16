@@ -47,16 +47,34 @@
 # Podman secrets rather than environment variables: the values are then absent
 # from `podman inspect` and from /proc/<pid>/environ. Both images accept the
 # *_FILE convention. no_log so the value never reaches the Ansible output.
-- name: Create podman secrets for the Nextcloud passwords
+# Write the secret only when the value actually differs. `--replace`
+# unconditionally would make every deploy report changed and restart the whole
+# pod, so a no-op run would never be a no-op.
+- name: Read the current podman secrets
+  ansible.builtin.command:
+    cmd: >-
+      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
+      --quiet podman secret inspect --showsecret --format {{ '{{.SecretData}}' }}
+      {{ item.name }}
+  loop: "{{ nextcloud_service_secrets }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: nextcloud_secret_current
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Write the podman secrets that changed
   ansible.builtin.shell:
     cmd: >-
       set -o pipefail &&
-      printf '%s' '{{ item.value }}' |
+      printf '%s' '{{ item.item.value }}' |
       systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
-      --quiet podman secret create --replace {{ item.name }} -
-  loop:
-    - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}
-    - {name: nextcloud_service_admin_password, value: "{{ nextcloud_service_admin_password }}"}
+      --quiet podman secret create --replace {{ item.item.name }} -
+  loop: "{{ nextcloud_secret_current.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: item.stdout | default('') != item.item.value
   changed_when: true
   no_log: true
   # podman secret create --replace does not restart consumers, so without this
@@ -154,4 +172,6 @@
   loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
   loop_control:
     index_var: idx
-  changed_when: true
+  # occ cannot say whether the value already matched, and this only enforces
+  # what the config should be, so do not claim a change every run.
+  changed_when: false
