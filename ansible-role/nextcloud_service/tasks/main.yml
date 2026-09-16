@@ -6,15 +6,15 @@
 # time, which shows up as an endless container restart loop.
 - name: Assert the Nextcloud image reference is lowercase
   ansible.builtin.assert:
-    that: nextcloud_app_image.split(':')[0] == nextcloud_app_image.split(':')[0] | lower
+    that: nextcloud_service_app_image.split(':')[0] == nextcloud_service_app_image.split(':')[0] | lower
     fail_msg: >-
-      nextcloud_app_image repository must be lowercase, got
-      '{{ nextcloud_app_image }}'. Fix nextcloud_image in secrets/vars.yml.
+      nextcloud_service_app_image repository must be lowercase, got
+      '{{ nextcloud_service_app_image }}'. Fix nextcloud_image in secrets/vars.yml.
 
 # group matters as much as owner: a directory left in group root is unmapped
 # inside the rootless user namespace, so `podman unshare chown` on it fails
 # with EPERM and the app container cannot take ownership of its data dir.
-- name: Ensure service data directories
+- name: Ensure service directories exist
   ansible.builtin.file:
     path: "{{ service_home }}/{{ item }}"
     state: directory
@@ -97,7 +97,7 @@
     mode: '0644'
   notify: nextcloud quadlets changed
 
-- name: Template container Quadlet files
+- name: Template container Quadlets
   ansible.builtin.template:
     src: "{{ item }}"
     dest: "{{ service_home }}/.config/containers/systemd/{{ item | basename | replace('.j2', '') }}"
@@ -107,7 +107,7 @@
   loop: "{{ query('fileglob', service_repo ~ '/quadlets/*.container.j2') }}"
   notify: nextcloud quadlets changed
 
-- name: Template config files
+- name: Deploy config files
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ service_home }}/.config/containers/systemd/configs/{{ item.dest }}"

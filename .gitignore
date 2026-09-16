@@ -126,10 +126,11 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,windows,macos,emacs
 
-# Additional patterns for service-nextcloud
+# Ansible
+*.retry
+.ansible/
 
-.env
+# Editor and OS noise
+*.bak
+*.backup
 *.log
-db/
-data/
-quadlets/nextcloud-*.container

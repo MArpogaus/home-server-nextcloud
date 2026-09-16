@@ -1,5 +1,9 @@
+[Unit]
+Requires=nextcloud-app.service
+After=nextcloud-app.service
+
 [Container]
-Image={{ nextcloud_nginx_image }}
+Image={{ nextcloud_service_nginx_image }}
 ContainerName=nextcloud-web
 PodmanArgs={{ nextcloud_service_web_extra_args }}
 Volume=nc-app-html:/var/www/html:ro,z
@@ -15,10 +19,6 @@ HealthCmd=wget -qO /dev/null http://127.0.0.1/status.php
 HealthInterval=60s
 HealthStartPeriod=300s
 HealthOnFailure=kill
-
-[Unit]
-Requires=nextcloud-app.service
-After=nextcloud-app.service
 
 [Service]
 Restart=on-failure

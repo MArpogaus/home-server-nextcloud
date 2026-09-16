@@ -1,5 +1,5 @@
 [Container]
-Image={{ nextcloud_db_image }}
+Image={{ nextcloud_service_db_image }}
 ContainerName=nextcloud-db
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_db_password,type=mount,target=/run/secrets/nextcloud_db_password

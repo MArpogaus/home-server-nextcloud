@@ -1,5 +1,8 @@
+[Unit]
+After=nextcloud-app.service
+
 [Container]
-Image={{ nextcloud_app_image }}
+Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-cron
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_db_password,type=mount,target=/run/secrets/nextcloud_db_password
@@ -12,9 +15,6 @@ Pod=nc.pod
 # Sets up the previewgenerator app, then runs cron.sh (cron.php + preview:pre-generate)
 Entrypoint=/previewgenerator.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
-
-[Unit]
-After=nextcloud-app.service
 
 [Service]
 Restart=on-failure
