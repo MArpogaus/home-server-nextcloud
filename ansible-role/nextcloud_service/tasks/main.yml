@@ -136,9 +136,15 @@
     podman exec -u www-data nextcloud-app php /var/www/html/occ status --output=json
   register: nextcloud_status
   until: '"\"installed\":true" in nextcloud_status.stdout'
-  retries: 60
+  # 5 minutes: long enough for a cold image pull and the install wizard, short
+  # enough that a dead container or an unreachable host fails fast instead of
+  # sitting silent for ten.
+  retries: 30
   delay: 10
   changed_when: false
+  failed_when:
+    - nextcloud_status.attempts | default(0) >= 30
+    - '"\"installed\":true" not in nextcloud_status.stdout'
 
 - name: Ensure the configured domains are trusted
   ansible.builtin.command: >-
