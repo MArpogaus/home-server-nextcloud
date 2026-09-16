@@ -1,5 +1,5 @@
 [Pod]
 PodName=nc
-# Published on all interfaces: Bunkerweb (another rootless user) reaches it via
-# host.containers.internal. firewalld only allows 22/80/443 from outside.
+# Published on all interfaces: Bunkerweb (another rootless user) reaches it at
+# the host address. firewalld only allows 22/80/443 from outside.
 PublishPort=8080:80

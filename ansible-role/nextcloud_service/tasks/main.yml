@@ -59,12 +59,16 @@
     - {name: nextcloud_admin_password, value: "{{ nextcloud_admin_password }}"}
   changed_when: true
   no_log: true
+  # podman secret create --replace does not restart consumers, so without this
+  # a rotated password updates the secret and leaves the pod on the old one.
+  notify: nextcloud quadlets changed
 
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
     src: pre-snapshot-pg-dump.sh.j2
     dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
     owner: "{{ service_user }}"
+    group: "{{ service_user }}"
     mode: '0755'
 
 - name: Template pg_dumpall systemd service and timer

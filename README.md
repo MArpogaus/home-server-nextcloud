@@ -14,7 +14,7 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 | nextcloud-push | custom image | `notify_push` daemon |
 
 The pod publishes `8080:80` on all interfaces so the Bunkerweb pod (another
-rootless user) can reach it via `host.containers.internal:8080`; firewalld
+rootless user) can reach it at the host address on 8080; firewalld
 blocks it from outside. Inside the pod everything uses `127.0.0.1`.
 
 Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
@@ -46,8 +46,8 @@ Btrfs snapshot (00:00, from `ansible-base`) is consistent. Dumps older than
 
 ## Role Contract
 
-Inherited from `site.yml`: `service_name`, `service_user`, `service_uid`,
-`service_home`, `service_repo`. File tasks notify `nextcloud quadlets changed`
+Inherited from `site.yml`: `service_name`, `service_user`, `service_home`,
+`service_repo`. File tasks notify `nextcloud quadlets changed`
 (daemon-reload + pod restart only when something changed).
 
 ## Custom image
