@@ -6,14 +6,13 @@
       nextcloud_service_app_image repository must be lowercase, got
       '{{ nextcloud_service_app_image }}'. Fix nextcloud_service_app_image in secrets/vars.yml.
 
+# Created once, owned by the service user so that the `podman unshare chown`
+# below can take them over. Enforcing the owner on every run would undo that
+# chown and report a change forever, so only missing directories are created.
 # group, not only owner: a dir left in group root is unmapped in the userns.
-- name: Ensure service directories exist
-  ansible.builtin.file:
+- name: Check which service directories exist
+  ansible.builtin.stat:
     path: "{{ service_home }}/{{ item }}"
-    state: directory
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0755'
   loop:
     - data/db_data
     - data/data
@@ -21,6 +20,18 @@
     - data/custom_apps
     - bin
     - .config/containers/systemd/configs
+  register: nextcloud_service_dirs
+
+- name: Create the missing service directories
+  ansible.builtin.file:
+    path: "{{ service_home }}/{{ item.item }}"
+    state: directory
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: '0755'
+  loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.item }}"
 
 # The image entrypoint chowns these to uid 33 and exits 23 if it cannot.
 - name: Own the Nextcloud data and config dirs as the container www-data user
