@@ -1,9 +1,4 @@
 ---
-# Nextcloud service deployment — fully self-contained
-# Receives: service_name, service_user, service_home, service_repo
-
-# OCI repository names must be lowercase; podman only reports this at pull
-# time, which shows up as an endless container restart loop.
 - name: Assert the Nextcloud image reference is lowercase
   ansible.builtin.assert:
     that: nextcloud_service_app_image.split(':')[0] == nextcloud_service_app_image.split(':')[0] | lower
@@ -11,9 +6,7 @@
       nextcloud_service_app_image repository must be lowercase, got
       '{{ nextcloud_service_app_image }}'. Fix nextcloud_service_app_image in secrets/vars.yml.
 
-# group matters as much as owner: a directory left in group root is unmapped
-# inside the rootless user namespace, so `podman unshare chown` on it fails
-# with EPERM and the app container cannot take ownership of its data dir.
+# group, not only owner: a dir left in group root is unmapped in the userns.
 - name: Ensure service directories exist
   ansible.builtin.file:
     path: "{{ service_home }}/{{ item }}"
@@ -29,10 +22,7 @@
     - bin
     - .config/containers/systemd/configs
 
-# The image entrypoint rsyncs into /var/www/html and chowns the data and
-# config mount points to www-data (uid 33). That chown fails unless the host
-# directory already belongs to the subuid uid 33 maps to, and rsync then exits
-# 23 in a restart loop. podman unshare does the mapping arithmetic for us.
+# The image entrypoint chowns these to uid 33 and exits 23 if it cannot.
 - name: Own the Nextcloud data and config dirs as the container www-data user
   ansible.builtin.command:
     cmd: >-
@@ -44,12 +34,7 @@
     - custom_apps
   changed_when: false
 
-# Podman secrets rather than environment variables: the values are then absent
-# from `podman inspect` and from /proc/<pid>/environ. Both images accept the
-# *_FILE convention. no_log so the value never reaches the Ansible output.
-# Write the secret only when the value actually differs. `--replace`
-# unconditionally would make every deploy report changed and restart the whole
-# pod, so a no-op run would never be a no-op.
+# Read first, write on difference: --replace every run restarts the pod.
 - name: Read the current podman secrets
   ansible.builtin.command:
     cmd: >-
@@ -77,8 +62,7 @@
   when: item.stdout | default('') != item.item.value
   changed_when: true
   no_log: true
-  # podman secret create --replace does not restart consumers, so without this
-  # a rotated password updates the secret and leaves the pod on the old one.
+  # --replace does not restart consumers, so a rotated password needs this.
   notify: nextcloud quadlets changed
 
 - name: Deploy pre-snapshot pg_dumpall script
@@ -144,19 +128,12 @@
   ansible.builtin.command: systemctl --user -M nextcloud@ start nc-pod.service  # noqa: command-instead-of-module
   changed_when: false
 
-# The image applies NEXTCLOUD_TRUSTED_DOMAINS only inside its first-run install
-# branch, so a domain added later never reaches config.php and every proxied
-# request fails with "Trusted domain error". Enforce it here instead, where it
-# is declarative and idempotent.
 - name: Wait for Nextcloud to finish installing
   ansible.builtin.command: >-
     systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
     podman exec -u www-data nextcloud-app php /var/www/html/occ status --output=json
   register: nextcloud_status
   until: '"\"installed\":true" in nextcloud_status.stdout'
-  # 5 minutes: long enough for a cold image pull and the install wizard, short
-  # enough that a dead container or an unreachable host fails fast instead of
-  # sitting silent for ten.
   retries: 30
   delay: 10
   changed_when: false
@@ -164,6 +141,7 @@
     - nextcloud_status.attempts | default(0) >= 30
     - '"\"installed\":true" not in nextcloud_status.stdout'
 
+# The image honors NEXTCLOUD_TRUSTED_DOMAINS on first install only.
 - name: Ensure the configured domains are trusted
   ansible.builtin.command: >-
     systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
@@ -172,6 +150,4 @@
   loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
   loop_control:
     index_var: idx
-  # occ cannot say whether the value already matched, and this only enforces
-  # what the config should be, so do not claim a change every run.
-  changed_when: false
+  changed_when: false  # occ cannot report whether the value already matched

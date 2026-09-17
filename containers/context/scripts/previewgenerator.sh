@@ -1,7 +1,6 @@
 #!/bin/bash
 set -xeuo pipefail
 
-# Define a wrapper function to execute occ as www-data safely
 occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }

@@ -1,28 +1,20 @@
 ---
 nextcloud_service_auto_update: "registry"
 
-# Image tags
 nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:31"
 nextcloud_service_db_image: "docker.io/library/postgres:15"
 nextcloud_service_redis_image: "docker.io/library/redis:7-alpine"
 nextcloud_service_nginx_image: "docker.io/library/nginx:1-alpine"
 
-# Resource ceilings, sized for an 8 GB host. Real usage is far lower; these
-# only stop a runaway container from taking the box down.
 nextcloud_service_db_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
-# No --cap-drop=ALL here: the redis entrypoint uses setpriv to drop from
-# root to the redis user, which needs CAP_SETUID and CAP_SETGID. Dropping
-# everything makes it exit 127 on "setresuid failed".
+# No --cap-drop=ALL: the redis entrypoint needs CAP_SETUID and CAP_SETGID.
 nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
-# --cpus caps preview generation, which is the only job here that will
-# happily saturate a thin client for hours after a bulk upload.
+# --cpus caps preview generation after a bulk upload.
 nextcloud_service_cron_extra_args: "--memory=768M --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 
-# Passwords are kept as podman secrets, not environment variables, so they do
-# not appear in `podman inspect` or /proc/<pid>/environ.
 nextcloud_service_secrets:
   - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}
   - {name: nextcloud_service_admin_password, value: "{{ nextcloud_service_admin_password }}"}
@@ -34,11 +26,10 @@ nextcloud_service_admin_user: admin
 nextcloud_service_trusted_domains: "cloud.example.com"
 nextcloud_service_url: "https://{{ nextcloud_service_trusted_domains.split(',')[0] | trim }}"
 
-# Bunkerweb reaches this pod through the host (rootless users have separate
-# networks), so its traffic arrives from a LAN or link-local address.
+# Bunkerweb traffic arrives through the host, from a LAN or link-local address.
 nextcloud_service_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
 
-# PHP (per-process memory_limit x max_children is the real RAM budget)
+# memory_limit x max_children is the real RAM budget.
 nextcloud_service_php_max_children: 8
 nextcloud_service_php_memory_limit: 512M
 nextcloud_service_php_max_requests: 500
@@ -49,7 +40,7 @@ nextcloud_service_php_emergency_restart_threshold: 10
 nextcloud_service_php_emergency_restart_interval: 1m
 nextcloud_service_php_process_control_timeout: 10s
 
-# Nginx upload ceiling; keep >= nextcloud_service_php_upload_limit
+# Keep >= nextcloud_service_php_upload_limit.
 nextcloud_service_max_body_size: 15G
 
 nextcloud_service_db_dump_retention_days: 30

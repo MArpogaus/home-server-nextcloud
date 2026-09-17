@@ -1,7 +1,5 @@
 [Pod]
 PodName=nc
-# Loopback only. Bunkerweb runs as a different rootless user and reaches this
-# through pasta's --map-host-loopback, configured on the proxy pod. Publishing
-# on all interfaces would also work, but would expose Nextcloud to anything
-# that can reach the host's routable addresses, bypassing the WAF.
+# Loopback only. Bunkerweb reaches this through pasta's --map-host-loopback,
+# which it configures on the proxy pod. See the README of service-bunker.
 PublishPort=127.0.0.1:8080:80

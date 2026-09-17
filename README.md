@@ -46,6 +46,35 @@ to RFC1918 + link-local because Bunkerweb's traffic arrives through the host.
 Btrfs snapshot (00:00, from `ansible-base`) is consistent. Dumps older than
 30 days are pruned.
 
+## Traps in this role
+
+The image entrypoint copies the application into `/var/www/html`. Then it
+chowns the data and config mount points to `www-data`, which is uid 33 in the
+container. That chown fails when the host directory does not already belong to
+the subuid that uid 33 maps to. The entrypoint then exits 23 and the container
+restarts forever. The role runs `podman unshare chown 33:33` on those
+directories first, which does the mapping arithmetic.
+
+Ansible creates the directories with an explicit group. A directory left in
+group root is unmapped inside the rootless user namespace, and `podman unshare
+chown` on it fails with EPERM.
+
+Database and admin credentials are podman secrets, not environment variables.
+The values are then absent from `podman inspect` and from `/proc/<pid>/environ`.
+Both images accept the `*_FILE` convention. The role reads each secret before
+it writes it, and writes only a value that differs. `podman secret create
+--replace` on every run reports a change every time and restarts the whole pod.
+A write does restart the pod, because `--replace` alone leaves the containers
+on the old value.
+
+The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
+only. A domain added later never reaches `config.php`, and every proxied
+request fails with "Trusted domain error". The role sets the domains with `occ`
+on every run instead.
+
+The image repository name must be lowercase. OCI requires this. podman reports
+the error at pull time only, which looks like a container restart loop.
+
 ## Role Contract
 
 Inherited from `site.yml`: `service_name`, `service_user`, `service_home`,
@@ -61,15 +90,7 @@ policy on the host.
 
 ## Development
 
-```bash
-pre-commit install --install-hooks -t pre-commit -t commit-msg -t pre-push
-```
-
-Plain `pre-commit install` wires up only the pre-commit stage, so the
-commitizen message and branch checks stay dormant. Hooks: shellcheck,
-ansible-lint (which owns YAML style here), commitizen for conventional commits.
-CI runs the same set on push and pull request. Actions are pinned to SHAs, and
-dependabot updates actions and hook revisions weekly against `dev`.
+Read [AGENTS.md](../AGENTS.md) for the hook setup and the branch rules.
 
 ## License
 

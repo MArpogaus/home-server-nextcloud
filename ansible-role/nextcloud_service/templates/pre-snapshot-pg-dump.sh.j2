@@ -1,7 +1,6 @@
 #!/bin/bash
-# Pre-snapshot PostgreSQL dump — runs as the nextcloud user.
-# Dumps into the data subvolume so the nightly Btrfs snapshot captures a
-# consistent copy of the database rather than its on-disk files mid-write.
+# Dumps into the data subvolume, so the nightly Btrfs snapshot captures a
+# consistent database instead of its on-disk files mid-write.
 set -euo pipefail
 
 DUMP_DIR="${HOME}/data/db_dumps"
@@ -10,9 +9,7 @@ DUMP_FILE="${DUMP_DIR}/dump-${TIMESTAMP}.sql"
 
 mkdir -p "$DUMP_DIR"
 
-# No password needed: this connects over the container's local Unix socket,
-# which the postgres image trusts. Reading the podman secret here would put the
-# password back into a process argument, which is what the secret avoids.
+# No password: the local Unix socket is trusted by the postgres image.
 podman exec -u postgres nextcloud-db \
 	pg_dumpall -U {{ nextcloud_service_db_user }} > "$DUMP_FILE"
 

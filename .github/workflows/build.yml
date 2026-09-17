@@ -13,12 +13,9 @@ permissions: {}
 jobs:
   build:
     strategy:
-      # Every matrix job also pushes and then verifies the `latest` tag. Run in
-      # parallel and they overwrite each other's digest between sign and
-      # verify, which fails as "no signatures found". Serialised, the last
-      # entry wins `latest`, which is also the semantics we want.
+      # Parallel jobs overwrite each other's `latest` digest between sign and
+      # verify, which fails as "no signatures found". Serialised, the last wins.
       max-parallel: 1
-      # One version failing should not cancel the others.
       fail-fast: false
       matrix:
         tag: [31, 32, 33, 34]
@@ -27,9 +24,7 @@ jobs:
       actions: read
       packages: write
       id-token: write
-    # Upstream directly rather than a vendored copy: the fork had already
-    # drifted (different pinned checkout) and had to be synced by hand.
-    # Pinned to the release commit; dependabot bumps it when a tag moves.
+    # Pinned to the release commit. Dependabot bumps it when a tag moves.
     uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@7e52129c98111d7437960159061f3ab0b6fa2f33 # v1.6.0
     with:
       image-name: nextcloud

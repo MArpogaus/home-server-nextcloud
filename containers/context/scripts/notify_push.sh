@@ -10,9 +10,7 @@ fi
 
 su www-data -ps /bin/sh -c "php occ app:enable notify_push"
 
-# The app store build ships prebuilt binaries under bin/<arch>/. If that
-# directory is missing the app is installed but unusable, and the bare exit
-# below would otherwise look like a silent crash loop.
+# Without this the app is installed but unusable, which looks like a crash loop.
 if ! [ -x "$BIN" ]; then
 	echo "ERROR: notify_push binary not found at ${BIN}" >&2
 	echo "Present architectures: $(ls "${APP_DIR}/bin" 2>/dev/null || echo '<no bin directory>')" >&2
