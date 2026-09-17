@@ -1,7 +1,7 @@
 [Pod]
 PodName=nc
-# Loopback only. Bunkerweb runs as a different rootless user, but it reaches
-# the host through pasta's host-loopback mapping, so it does not need this
-# bound on all interfaces. Binding it wider would let any LAN device reach
-# Nextcloud directly and bypass the WAF.
-PublishPort=127.0.0.1:8080:80
+# Published on all interfaces because Bunkerweb runs as a different rootless
+# user and reaches this through the host address; a loopback bind is not
+# reachable that way and yields 502. firewalld admits only ssh, http and https,
+# so this port is not exposed to the LAN despite the bind address.
+PublishPort=8080:80
