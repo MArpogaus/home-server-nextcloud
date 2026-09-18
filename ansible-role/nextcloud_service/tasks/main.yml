@@ -35,11 +35,14 @@
 # custom_apps holds app code and the recognize models: several gigabytes that
 # the app store can hand back. A Btrfs snapshot does not recurse into a nested
 # subvolume, so this keeps them out of every snapshot and every backup without
-# any exclude list to maintain. The chown below then gives it to the container
-# user like the other data directories.
+# any exclude list to maintain. btrfs creates it owned by root, which is outside
+# the service user's namespace map, so `podman unshare chown` below cannot reach
+# it until this chown hands it over.
 - name: Create custom_apps as a nested Btrfs subvolume
-  ansible.builtin.command:
-    cmd: btrfs subvolume create {{ service_home }}/data/custom_apps
+  ansible.builtin.shell:
+    cmd: >-
+      btrfs subvolume create {{ service_home }}/data/custom_apps &&
+      chown {{ service_user }}:{{ service_user }} {{ service_home }}/data/custom_apps
     creates: "{{ service_home }}/data/custom_apps"
 
 # The image entrypoint chowns these to uid 33 and exits 23 if it cannot.
