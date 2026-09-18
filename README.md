@@ -16,8 +16,8 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 | nextcloud-push | custom image | `notify_push` daemon |
 
 The pod publishes `8080` on loopback only. Bunkerweb runs as a different
-rootless user with its own container network, but it reaches the host through
-pasta's host-loopback mapping, so it does not need this bound any wider. Inside
+rootless user with its own container network. It still reaches the host
+through pasta's host-loopback mapping, so this needs no wider bind. Inside
 the pod everything uses `127.0.0.1`, because containers in a pod share a
 network namespace and bind IPv4 only.
 
@@ -65,10 +65,9 @@ the default in `recognize-worker.sh` does not match.
 
 Each of the three app containers installs and enables its own app, the same
 way: preview, push and recognize. Recognize also fetches its models and its
-node binary, so a fresh host needs no manual step. That download is
-gigabytes, and it runs once: the container asks for it again only when the
-files are missing, which also covers a restore that carried the app without
-its models.
+node binary, so a fresh host needs no manual step. That download is gigabytes,
+so it runs once. The container asks for it again only when the files are
+missing. That also covers a restore which carried the app without its models.
 
 The first start therefore takes as long as the download does. The worker
 starts after it, so classification simply begins late.
