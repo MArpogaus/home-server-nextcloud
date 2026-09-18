@@ -50,6 +50,13 @@ to RFC1918 + link-local because Bunkerweb's traffic arrives through the host.
 Btrfs snapshot (00:00, from `ansible-base`) is consistent. Dumps older than
 30 days are pruned.
 
+`data/custom_apps` is its own Btrfs subvolume, and a snapshot does not recurse
+into a nested subvolume. App code and the recognize models therefore stay out
+of every snapshot and every backup. They are several gigabytes, and the app
+store can hand them back. After a bare-metal restore, the four app containers
+install their own apps again. An app that was installed from the web interface
+must be installed again by hand.
+
 ## Memory
 
 The ceilings add up to more than the host has. That is deliberate: they are
