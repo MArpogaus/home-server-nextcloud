@@ -16,7 +16,8 @@ ENV NEXTCLOUD_UPDATE=1
 COPY context/scripts/configure.sh /configure.sh
 COPY context/scripts/notify_push.sh /notify_push.sh
 COPY context/scripts/previewgenerator.sh /previewgenerator.sh
-RUN chmod +x /configure.sh /notify_push.sh /previewgenerator.sh
+COPY context/scripts/recognize-worker.sh /recognize-worker.sh
+RUN chmod +x /configure.sh /notify_push.sh /previewgenerator.sh /recognize-worker.sh
 COPY context/configs/prev.config.php /usr/src/nextcloud/config/
 COPY context/configs/phone.config.php /usr/src/nextcloud/config/
 COPY context/configs/log.config.php /usr/src/nextcloud/config/

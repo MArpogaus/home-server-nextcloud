@@ -18,11 +18,11 @@ occ config:app:set --value="64 256" previewgenerator squareSizes
 occ config:app:set --value="" previewgenerator widthSizes
 occ config:app:set --value="" previewgenerator heightSizes
 occ config:app:set --value="256 4096" previewgenerator fillWidthHeightSizes
+occ config:app:set --value="256 4096" previewgenerator coverWidthHeightSizes
 occ config:app:set --value="80" preview jpeg_quality
 occ config:app:set --value=false --type=boolean previewgenerator job_disabled
 
-# 3. Add preview job next to the image's cron.php entry, then run cron
-CRONTAB=/var/spool/cron/crontabs/www-data
-grep -q 'preview:pre-generate' "$CRONTAB" || \
-	echo "*/10 * * * * php /var/www/html/occ preview:pre-generate" >> "$CRONTAB"
+# 3. This container runs previews only, so it owns the crontab outright.
+# cron.php stays in nextcloud-cron.
+echo "*/10 * * * * php /var/www/html/occ preview:pre-generate" > /var/spool/cron/crontabs/www-data
 exec /cron.sh

@@ -6,11 +6,13 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 
 | Container | Image | Role |
 |---|---|---|
-| nextcloud-db | postgres:15 | Database (`pg_isready` health check) |
-| nextcloud-redis | redis:7-alpine | Cache (`redis-cli ping`) |
-| nextcloud-app | ghcr.io/marpogaus/nextcloud:31 (custom, fpm) | PHP-FPM |
-| nextcloud-web | nginx:1-alpine | Serves the app; `status.php` health check covers the whole stack |
-| nextcloud-cron | custom image | `cron.php` every 5 min + `preview:pre-generate` every 10 min |
+| nextcloud-db | postgres:18-alpine | Database (`pg_isready` health check) |
+| nextcloud-redis | redis:8-alpine | Cache (`redis-cli ping`) |
+| nextcloud-app | ghcr.io/marpogaus/nextcloud:34 (custom, fpm) | PHP-FPM |
+| nextcloud-web | nginx:mainline-alpine | Serves the app; `status.php` health check covers the whole stack |
+| nextcloud-cron | custom image | `cron.php` every 5 min |
+| nextcloud-preview | custom image | `preview:pre-generate` every 10 min, own memory ceiling |
+| nextcloud-recognize | custom image | recognize classifier worker; installs and enables the app |
 | nextcloud-push | custom image | `notify_push` daemon |
 
 The pod publishes `8080` on loopback only. Bunkerweb runs as a different
@@ -31,7 +33,9 @@ Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 | `nextcloud_service_php_memory_limit` | 512M |
 | `nextcloud_service_app_extra_args` | `--memory=2G` + tmpfs `/tmp` |
 | `nextcloud_service_db_extra_args` | `--memory=768M` |
-| `nextcloud_service_cron_extra_args` | `--memory=768M` |
+| `nextcloud_service_cron_extra_args` | `--memory=1G` |
+| `nextcloud_service_preview_extra_args` | `--memory=2G --cpus=1` |
+| `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=1` |
 | redis / web / push | 128M each |
 
 ### Secrets
@@ -45,6 +49,24 @@ to RFC1918 + link-local because Bunkerweb's traffic arrives through the host.
 `pg-dumpall.timer` (23:55) dumps the DB into `data/db_dumps/` so the nightly
 Btrfs snapshot (00:00, from `ansible-base`) is consistent. Dumps older than
 30 days are pruned.
+
+## Memory
+
+The ceilings add up to more than the host has. That is deliberate: they are
+limits, not reservations, and the two heavy jobs are bursty. Previews and
+recognize both start after an upload, so they can peak together. If recognize
+is killed, only classification stops, and the container restarts. cron.php
+keeps running every other background job, which is the reason recognize has a
+container of its own.
+
+Recognize runs as a Nextcloud background job, so without its own worker it
+executes inside `nextcloud-cron`. `occ background-job:list` names the class if
+the default in `recognize-worker.sh` does not match.
+
+Each of the three app containers installs and enables its own app, the same
+way: preview, push and recognize. Recognize does not download its models,
+because that is gigabytes. Run `occ recognize:download-models` once,
+deliberately.
 
 ## Traps in this role
 

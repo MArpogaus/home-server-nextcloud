@@ -1,18 +1,31 @@
 ---
 nextcloud_service_auto_update: "registry"
 
-nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:31"
-nextcloud_service_db_image: "docker.io/library/postgres:15"
-nextcloud_service_redis_image: "docker.io/library/redis:7-alpine"
-nextcloud_service_nginx_image: "docker.io/library/nginx:1-alpine"
+# 34 is the destination. A restore starts on the major version that wrote
+# the database, then steps up one major at a time. Nextcloud refuses to skip.
+nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:34"
+# Matches what the old system ran: postgres 18-alpine, redis 8-alpine. A dump
+# restores into the same major version or a newer one, never an older one.
+# Nextcloud 33 and 34 list PostgreSQL 14 to 18. Nextcloud publishes no Redis
+# matrix at all, so the running version is the only evidence that counts.
+nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
+nextcloud_service_redis_image: "docker.io/library/redis:8-alpine"
+nextcloud_service_nginx_image: "docker.io/library/nginx:mainline-alpine"
 
 nextcloud_service_db_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
 # No --cap-drop=ALL: the redis entrypoint needs CAP_SETUID and CAP_SETGID.
 nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
-# --cpus caps preview generation after a bulk upload.
-nextcloud_service_cron_extra_args: "--memory=768M --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_cron_extra_args: "--memory=1G --pids-limit=512 --security-opt=no-new-privileges"
+# Previews run in their own container: the work is bursty and memory hungry,
+# and --cpus stops it saturating a thin client after a bulk upload.
+nextcloud_service_preview_extra_args: "--memory=2G --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
+# Recognize is the heaviest job in the stack and the one most likely to be
+# killed. That is acceptable: it runs in its own container, so the OOM takes
+# the ML process and not cron.php. RECOGNIZE_JOB_CLASS overrides the class if
+# `occ background-job:list` names a different one.
+nextcloud_service_recognize_extra_args: "--memory=2G --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 
 nextcloud_service_secrets:

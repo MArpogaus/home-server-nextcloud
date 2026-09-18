@@ -3,21 +3,21 @@ After=nextcloud-app.service
 
 [Container]
 Image={{ nextcloud_service_app_image }}
-ContainerName=nextcloud-cron
+ContainerName=nextcloud-recognize
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
-PodmanArgs={{ nextcloud_service_cron_extra_args }}
+PodmanArgs={{ nextcloud_service_recognize_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
-Entrypoint=/cron.sh
+Entrypoint=/recognize-worker.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
 
 [Service]
 Restart=on-failure
-RestartSec=10s
+RestartSec=30s
 
 [Install]
 WantedBy=default.target
