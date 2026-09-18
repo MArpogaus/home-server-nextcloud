@@ -12,7 +12,7 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 | nextcloud-web | nginx:mainline-alpine | Serves the app; `status.php` health check covers the whole stack |
 | nextcloud-cron | custom image | `cron.php` every 5 min |
 | nextcloud-preview | custom image | `preview:pre-generate` every 10 min, own memory ceiling |
-| nextcloud-recognize | custom image | recognize classifier worker; installs and enables the app |
+| nextcloud-recognize | custom image | recognize classifier worker; installs the app and its models |
 | nextcloud-push | custom image | `notify_push` daemon |
 
 The pod publishes `8080` on loopback only. Bunkerweb runs as a different
@@ -64,9 +64,14 @@ executes inside `nextcloud-cron`. `occ background-job:list` names the class if
 the default in `recognize-worker.sh` does not match.
 
 Each of the three app containers installs and enables its own app, the same
-way: preview, push and recognize. Recognize does not download its models,
-because that is gigabytes. Run `occ recognize:download-models` once,
-deliberately.
+way: preview, push and recognize. Recognize also fetches its models and its
+node binary, so a fresh host needs no manual step. That download is
+gigabytes, and it runs once: the container asks for it again only when the
+files are missing, which also covers a restore that carried the app without
+its models.
+
+The first start therefore takes as long as the download does. The worker
+starts after it, so classification simply begins late.
 
 ## Traps in this role
 

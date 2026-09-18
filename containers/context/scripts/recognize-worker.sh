@@ -1,17 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
+APP_DIR=/var/www/html/custom_apps/recognize
+
 occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
 # Same shape as previewgenerator.sh and notify_push.sh: the container owns its
-# app. Models are not downloaded here, because that is gigabytes and belongs in
-# a deliberate step: occ recognize:download-models
-if ! [ -d /var/www/html/custom_apps/recognize ]; then
+# app, so a fresh host needs no manual step.
+if ! [ -d "$APP_DIR" ]; then
 	occ app:install recognize
 elif [ "$(occ config:app:get recognize enabled)" = "no" ]; then
 	occ app:enable recognize
+fi
+
+# The models and the bundled node binary live inside the app directory. They
+# are gigabytes, so they are fetched once, and again only if they are missing:
+# a restore that carried the app but not its models lands here too.
+if ! [ -x "$APP_DIR/bin/node" ] || ! find "$APP_DIR/models" -name '*.json' -print -quit 2>/dev/null | grep -q .; then
+	occ recognize:download-models
 fi
 
 # Recognize classifies in background jobs, which otherwise run inside
