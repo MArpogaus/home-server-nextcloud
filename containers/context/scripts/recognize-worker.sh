@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -xeuo pipefail
 
 APP_DIR=/var/www/html/custom_apps/recognize
 
@@ -27,4 +27,6 @@ fi
 # cron.php down with it, and cron.php runs every other background job.
 JOB_CLASS="${RECOGNIZE_JOB_CLASS:-OCA\\Recognize\\BackgroundJobs\\ClassifierJob}"
 
-exec occ background-job:worker -v "${JOB_CLASS}"
+# Not `exec occ`: occ is a shell function, and exec needs a real binary.
+exec runuser -u www-data -- \
+	php /var/www/html/occ background-job:worker -v "${JOB_CLASS}"
