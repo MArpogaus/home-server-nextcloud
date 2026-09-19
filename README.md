@@ -8,7 +8,7 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 |---|---|---|
 | nextcloud-db | postgres:18-alpine | Database (`pg_isready` health check) |
 | nextcloud-redis | redis:8-alpine | Cache (`redis-cli ping`) |
-| nextcloud-app | ghcr.io/marpogaus/nextcloud:35 (custom, fpm) | PHP-FPM |
+| nextcloud-app | ghcr.io/marpogaus/nextcloud:34 (custom, fpm) | PHP-FPM |
 | nextcloud-web | nginx:mainline-alpine | Serves the app; `status.php` health check covers the whole stack |
 | nextcloud-cron | custom image | `cron.php` every 5 min |
 | nextcloud-preview | custom image | `preview:pre-generate` every 10 min, own memory ceiling |
@@ -71,6 +71,10 @@ Recognize classifies in background jobs. The worker takes the five
 list if `occ background-job:list` names other ones. cron.php cannot exclude a
 class, so it still takes a classify job now and then, and its 1 GB ceiling then
 kills the node process. Only that one job is lost; the worker retries it.
+
+The default stays on 34 until Preview Generator supports 35: on a 35 server
+its install fails with "not compatible" and the preview container restart-loops
+(seen 2026-09-19). CI builds 35 all the same, so the switch is one variable.
 
 Each of the three app containers installs and enables its own app, the same
 way: preview, push and recognize. Recognize also fetches its models and its
