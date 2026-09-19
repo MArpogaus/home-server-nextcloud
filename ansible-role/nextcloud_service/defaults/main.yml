@@ -17,8 +17,8 @@ nextcloud_service_cron_extra_args: "--memory=1G --pids-limit=512 --security-opt=
 nextcloud_service_preview_extra_args: "--memory=2G --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
 # Recognize is the heaviest job in the stack and the one most likely to be
 # killed. That is acceptable: it runs in its own container, so the OOM takes
-# the ML process and not cron.php. RECOGNIZE_JOB_CLASS overrides the class if
-# `occ background-job:list` names a different one.
+# the ML process and not cron.php. cron.php cannot exclude a class, so it still
+# takes a classify job now and then; RECOGNIZE_JOB_CLASSES overrides the list.
 nextcloud_service_recognize_extra_args: "--memory=2G --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
 nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
 

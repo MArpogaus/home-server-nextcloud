@@ -25,8 +25,10 @@ fi
 # Recognize classifies in background jobs, which otherwise run inside
 # nextcloud-cron. A worker of its own keeps a memory-hungry ML job from taking
 # cron.php down with it, and cron.php runs every other background job.
-JOB_CLASS="${RECOGNIZE_JOB_CLASS:-OCA\\Recognize\\BackgroundJobs\\ClassifierJob}"
+J="OCA\\Recognize\\BackgroundJobs\\"
+JOB_CLASSES="${RECOGNIZE_JOB_CLASSES:-${J}ClassifyImagenetJob ${J}ClassifyFacesJob ${J}ClassifyLandmarksJob ${J}ClassifyMovinetJob ${J}ClassifyMusicnnJob}"
 
 # Not `exec occ`: occ is a shell function, and exec needs a real binary.
+# shellcheck disable=SC2086  # one argument per class
 exec runuser -u www-data -- \
-	php /var/www/html/occ background-job:worker -v "${JOB_CLASS}"
+	php /var/www/html/occ background-job:worker -v ${JOB_CLASSES}
