@@ -66,9 +66,11 @@ is killed, only classification stops, and the container restarts. cron.php
 keeps running every other background job, which is the reason recognize has a
 container of its own.
 
-Recognize runs as a Nextcloud background job, so without its own worker it
-executes inside `nextcloud-cron`. `occ background-job:list` names the class if
-the default in `recognize-worker.sh` does not match.
+Recognize classifies in background jobs. The worker takes the five
+`Classify*Job` classes of Recognize 12; `RECOGNIZE_JOB_CLASSES` overrides the
+list if `occ background-job:list` names other ones. cron.php cannot exclude a
+class, so it still takes a classify job now and then, and its 1 GB ceiling then
+kills the node process. Only that one job is lost; the worker retries it.
 
 Each of the three app containers installs and enables its own app, the same
 way: preview, push and recognize. Recognize also fetches its models and its
