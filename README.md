@@ -8,7 +8,7 @@ Nextcloud in a rootless Podman pod under the `nextcloud` user, managed via Ansib
 |---|---|---|
 | nextcloud-db | postgres:18-alpine | Database (`pg_isready` health check) |
 | nextcloud-redis | redis:8-alpine | Cache (`redis-cli ping`) |
-| nextcloud-app | ghcr.io/marpogaus/nextcloud:34 (custom, fpm) | PHP-FPM |
+| nextcloud-app | ghcr.io/marpogaus/nextcloud:35 (custom, fpm) | PHP-FPM |
 | nextcloud-web | nginx:mainline-alpine | Serves the app; `status.php` health check covers the whole stack |
 | nextcloud-cron | custom image | `cron.php` every 5 min |
 | nextcloud-preview | custom image | `preview:pre-generate` every 10 min, own memory ceiling |

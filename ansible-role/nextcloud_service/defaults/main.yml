@@ -1,13 +1,7 @@
 ---
 nextcloud_service_auto_update: "registry"
 
-# 34 is the destination. A restore starts on the major version that wrote
-# the database, then steps up one major at a time. Nextcloud refuses to skip.
-nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:34"
-# Matches what the old system ran: postgres 18-alpine, redis 8-alpine. A dump
-# restores into the same major version or a newer one, never an older one.
-# Nextcloud 33 and 34 list PostgreSQL 14 to 18. Nextcloud publishes no Redis
-# matrix at all, so the running version is the only evidence that counts.
+nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:35"
 nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
 nextcloud_service_redis_image: "docker.io/library/redis:8-alpine"
 nextcloud_service_nginx_image: "docker.io/library/nginx:mainline-alpine"
