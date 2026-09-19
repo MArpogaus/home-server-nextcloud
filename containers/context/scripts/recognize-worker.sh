@@ -15,8 +15,8 @@ elif [ "$(occ config:app:get recognize enabled)" = "no" ]; then
 	occ app:enable recognize
 fi
 
-# A 200-face batch took node to 1.9 GB. Recognize's own low-memory profile.
-for kv in faces.batchSize=50 imagenet.batchSize=20 landmarks.batchSize=20 movinet.batchSize=5; do
+# One classifier at a time, in Recognize's low-memory profile: a 200-face batch took node to 1.9 GB.
+for kv in concurrency.enabled=false faces.batchSize=50 imagenet.batchSize=20 landmarks.batchSize=20 movinet.batchSize=5; do
 	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
 done
 
