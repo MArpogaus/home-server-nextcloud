@@ -18,7 +18,6 @@
     - data/data
     - data/config
     - bin
-    - .config/containers/systemd/configs
   register: nextcloud_service_dirs
 
 - name: Create the missing service directories
@@ -48,9 +47,9 @@
 # The image entrypoint chowns these to uid 33 and exits 23 if it cannot.
 - name: Own the Nextcloud data and config dirs as the container www-data user
   ansible.builtin.command:
-    cmd: >-
-      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
-      --quiet podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+    cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+  become: true
+  become_user: "{{ service_user }}"
   loop:
     - data
     - config
@@ -61,9 +60,10 @@
 - name: Read the current podman secrets
   ansible.builtin.command:
     cmd: >-
-      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
-      --quiet podman secret inspect --showsecret --format {{ '{{.SecretData}}' }}
+      podman secret inspect --showsecret --format {{ '{{.SecretData}}' }}
       {{ item.name }}
+  become: true
+  become_user: "{{ service_user }}"
   loop: "{{ nextcloud_service_secrets }}"
   loop_control:
     label: "{{ item.name }}"
@@ -77,16 +77,16 @@
     cmd: >-
       set -o pipefail &&
       printf '%s' '{{ item.item.value }}' |
-      systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect
-      --quiet podman secret create --replace {{ item.item.name }} -
+      podman secret create --replace {{ item.item.name }} -
+  become: true
+  become_user: "{{ service_user }}"
   loop: "{{ nextcloud_secret_current.results }}"
   loop_control:
     label: "{{ item.item.name }}"
   when: item.stdout | default('') != item.item.value
   changed_when: true
   no_log: true
-  # --replace does not restart consumers, so a rotated password needs this.
-  notify: nextcloud quadlets changed
+  register: nextcloud_secrets_written
 
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
@@ -113,48 +113,17 @@
     state: started
     daemon_reload: true
 
-- name: Deploy static Quadlet files
-  ansible.builtin.copy:
-    src: "{{ service_repo }}/quadlets/nc.pod"
-    dest: "{{ service_home }}/.config/containers/systemd/"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0644'
-  notify: nextcloud quadlets changed
-
-- name: Template container Quadlets
-  ansible.builtin.template:
-    src: "{{ item }}"
-    dest: "{{ service_home }}/.config/containers/systemd/{{ item | basename | replace('.j2', '') }}"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0644'
-  loop: "{{ query('fileglob', service_repo ~ '/quadlets/*.container.j2') }}"
-  notify: nextcloud quadlets changed
-
-- name: Deploy config files
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ service_home }}/.config/containers/systemd/configs/{{ item.dest }}"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: "{{ item.mode }}"
-  loop:
-    - { src: "{{ service_repo }}/quadlets/configs/nginx.conf.j2", dest: nginx.conf, mode: '0644' }
-    - { src: nextcloud.env.j2, dest: nextcloud.env, mode: '0600' }
-  notify: nextcloud quadlets changed
-
-- name: Apply quadlet changes now
-  ansible.builtin.meta: flush_handlers
-
-- name: Ensure nextcloud pod is running
-  ansible.builtin.command: systemctl --user -M nextcloud@ start nc-pod.service  # noqa: command-instead-of-module
-  changed_when: false
+- name: Deploy the Quadlets
+  ansible.builtin.import_role:
+    name: quadlet_service
+  vars:
+    quadlet_service_restart: "{{ nextcloud_secrets_written is changed }}"
 
 - name: Wait for Nextcloud to finish installing
   ansible.builtin.command: >-
-    systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
     podman exec -u www-data nextcloud-app php /var/www/html/occ status --output=json
+  become: true
+  become_user: "{{ service_user }}"
   register: nextcloud_status
   until: '"\"installed\":true" in nextcloud_status.stdout'
   retries: 30
@@ -167,9 +136,10 @@
 # The image honors NEXTCLOUD_TRUSTED_DOMAINS on first install only.
 - name: Ensure the configured domains are trusted
   ansible.builtin.command: >-
-    systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect --quiet
     podman exec -u www-data nextcloud-app php /var/www/html/occ
     config:system:set trusted_domains {{ idx + 1 }} --value={{ item | trim }}
+  become: true
+  become_user: "{{ service_user }}"
   loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
   loop_control:
     index_var: idx

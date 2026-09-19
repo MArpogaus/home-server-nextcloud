@@ -111,8 +111,10 @@ the error at pull time only, which looks like a container restart loop.
 ## Role Contract
 
 Inherited from `site.yml`: `service_name`, `service_user`, `service_home`,
-`service_repo`. File tasks notify `nextcloud quadlets changed`
-(daemon-reload + pod restart only when something changed).
+`service_repo`. The role imports `quadlet_service` from `ansible-base`, which
+deploys everything under `quadlets/`: `.j2` files are templated, all other
+files are copied, and the pod restarts only when one of them changed.
+`quadlet_service_pod: nc`, because the pod file is `nc.pod`, and `nextcloud.env` is mode `0600`. Both are set in `vars/main.yml`. A rewritten podman secret restarts the pod through `quadlet_service_restart`.
 
 ## Custom image
 
