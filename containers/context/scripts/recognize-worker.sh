@@ -15,6 +15,11 @@ elif [ "$(occ config:app:get recognize enabled)" = "no" ]; then
 	occ app:enable recognize
 fi
 
+# A 200-face batch took node to 1.9 GB. Recognize's own low-memory profile.
+for kv in faces.batchSize=50 imagenet.batchSize=20 landmarks.batchSize=20 movinet.batchSize=5; do
+	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
+done
+
 # The models and the bundled node binary live inside the app directory. They
 # are gigabytes, so they are fetched once, and again only if they are missing:
 # a restore that carried the app but not its models lands here too.
