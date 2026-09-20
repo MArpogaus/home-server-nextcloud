@@ -44,6 +44,12 @@
       chown {{ service_user }}:{{ service_user }} {{ service_home }}/data/custom_apps
     creates: "{{ service_home }}/data/custom_apps"
 
+# nginx in nextcloud-web runs as its own uid and has to traverse the directory.
+- name: Keep custom_apps traversable
+  ansible.builtin.file:
+    path: "{{ service_home }}/data/custom_apps"
+    mode: '0755'
+
 # The image entrypoint chowns these to uid 33 and exits 23 if it cannot.
 - name: Own the Nextcloud data and config dirs as the container www-data user
   ansible.builtin.command:
