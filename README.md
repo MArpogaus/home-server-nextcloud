@@ -35,7 +35,7 @@ Nextcloud, audit and PHP-FPM logs go to stderr → journald → Alloy → Loki.
 | `nextcloud_service_db_extra_args` | `--memory=768M` |
 | `nextcloud_service_cron_extra_args` | `--memory=1G` |
 | `nextcloud_service_preview_extra_args` | `--memory=2G --cpus=1` |
-| `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=1` |
+| `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=3` |
 | redis / web / push | 128M each |
 
 ### Secrets
