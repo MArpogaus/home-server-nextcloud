@@ -13,6 +13,7 @@ Volume={{ service_home }}/data/data:/var/www/html/data:ro,z
 Volume={{ service_home }}/data/config:/var/www/html/config:ro,z
 Volume=./configs/nginx.conf:/etc/nginx/nginx.conf:ro,z
 Volume=/dev/log:/dev/log
+Tmpfs=/var/log/nginx
 Pod=nc.pod
 AutoUpdate={{ nextcloud_service_auto_update }}
 # Full-stack check: nginx -> php-fpm -> Nextcloud -> DB
