@@ -1,0 +1,6 @@
+[Unit]
+Description=Free Recognize job reservations left by a dead worker for {{ service_user }}
+
+[Service]
+Type=oneshot
+ExecStart=systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect {{ service_home }}/bin/unstick-jobs.sh

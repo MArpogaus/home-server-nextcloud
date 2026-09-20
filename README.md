@@ -66,6 +66,11 @@ is killed, only classification stops, and the container restarts. cron.php
 keeps running every other background job, which is the reason recognize has a
 container of its own.
 
+A `unstick-jobs.timer` resets Recognize job reservations older than 30 minutes
+every 15 minutes. Nextcloud 34 kills a worker now and then with a duplicate
+job run id, and a job whose process died keeps `reserved_at` set, which blocks
+the classifiers for 12 hours.
+
 Recognize classifies in background jobs. The worker takes the five
 `Classify*Job` classes of Recognize 12; `RECOGNIZE_JOB_CLASSES` overrides the
 list if `occ background-job:list` names other ones. cron.php cannot exclude a

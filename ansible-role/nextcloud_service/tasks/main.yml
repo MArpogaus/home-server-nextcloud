@@ -96,7 +96,17 @@
     group: "{{ service_user }}"
     mode: '0755'
 
-- name: Template pg_dumpall systemd service and timer
+# Nextcloud 34 dies on a duplicate job run id now and then (JobRuns->started);
+# the reservation it leaves behind blocks the classifier for 12 hours.
+- name: Deploy the job reservation cleanup script
+  ansible.builtin.template:
+    src: unstick-jobs.sh.j2
+    dest: "{{ service_home }}/bin/unstick-jobs.sh"
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: '0755'
+
+- name: Template the pg_dumpall and unstick-jobs services and timers
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
@@ -105,13 +115,18 @@
   loop:
     - pg-dumpall.service
     - pg-dumpall.timer
+    - unstick-jobs.service
+    - unstick-jobs.timer
 
-- name: Enable and start pg_dumpall timer
+- name: Enable and start the pg_dumpall and unstick-jobs timers
   ansible.builtin.systemd:
-    name: pg-dumpall.timer
+    name: "{{ item }}"
     enabled: true
     state: started
     daemon_reload: true
+  loop:
+    - pg-dumpall.timer
+    - unstick-jobs.timer
 
 - name: Deploy the Quadlets
   ansible.builtin.import_role:
