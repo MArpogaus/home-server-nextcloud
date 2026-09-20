@@ -31,12 +31,8 @@
   loop_control:
     label: "{{ item.item }}"
 
-# custom_apps holds app code and the recognize models: several gigabytes that
-# the app store can hand back. A Btrfs snapshot does not recurse into a nested
-# subvolume, so this keeps them out of every snapshot and every backup without
-# any exclude list to maintain. btrfs creates it owned by root, which is outside
-# the service user's namespace map, so `podman unshare chown` below cannot reach
-# it until this chown hands it over.
+# Nested subvolume: snapshots do not recurse into it. btrfs creates it
+# root-owned, outside the userns map, so hand it to the service user here.
 - name: Create custom_apps as a nested Btrfs subvolume
   ansible.builtin.shell:
     cmd: >-
