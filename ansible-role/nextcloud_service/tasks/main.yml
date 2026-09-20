@@ -87,6 +87,21 @@
   no_log: true
   register: nextcloud_secrets_written
 
+# The image copies its config drop-ins only when the Nextcloud version changes,
+# and a drop-in overrides config.php, so occ cannot change these values.
+- name: Route the Nextcloud log to syslog
+  ansible.builtin.template:
+    src: log.config.php.j2
+    dest: "{{ service_home }}/data/config/log.config.php"
+    mode: '0644'
+
+- name: Hand the log drop-in to the container www-data user
+  ansible.builtin.command:
+    cmd: podman unshare chown 33:33 {{ service_home }}/data/config/log.config.php
+  become: true
+  become_user: "{{ service_user }}"
+  changed_when: false
+
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
     src: pre-snapshot-pg-dump.sh.j2

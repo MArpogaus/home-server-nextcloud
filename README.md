@@ -34,12 +34,16 @@ therefore log via syslog to `/dev/log`, mounted into the two containers:
   `quadlets/configs/nginx.conf.j2`, and `Exec=nginx -e stderr -g "daemon off;"`
   because nginx opens its compiled-in log path before it reads the config.
 - php-fpm: `error_log = syslog` from `containers/context/configs/zz-log.conf`,
-  `syslog.ident = php-fpm`. Nextcloud's own log (`log_type errorlog`) travels
-  the same way. The fpm access log is off; nginx logs every request as JSON.
+  `syslog.ident = php-fpm`. The fpm access log is off; nginx logs every
+  request as JSON.
+- Nextcloud itself: `log_type syslog`, tag `nextcloud`, one JSON object per
+  line, set by the role in `data/config/log.config.php`. The `errorlog` type
+  went through php-fpm's caught worker output, which php-fpm drops when its
+  own log is syslog; the application log was silently gone for half a day.
 
-Look for them with `journalctl SYSLOG_IDENTIFIER=nginx` and
-`SYSLOG_IDENTIFIER=php-fpm`. The `occ` processes (cron, worker) write to
-their unit's stream directly.
+Look for them with `journalctl SYSLOG_IDENTIFIER=nginx`, `=php-fpm` and
+`=nextcloud`. The `occ` processes (cron, worker) write to their unit's stream
+directly.
 
 ## Configuration
 
