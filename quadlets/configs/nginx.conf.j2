@@ -1,6 +1,6 @@
 worker_processes auto;
 
-error_log  /var/log/nginx/error.log warn;
+error_log  syslog:server=unix:/dev/log,nohostname,tag=nginx warn;
 pid        /var/run/nginx.pid;
 
 events {
@@ -55,7 +55,7 @@ http {
         '"http_cf_ray": "$http_cf_ray"'
         '}';
 
-    access_log  /dev/stdout json_analytics;
+    access_log  syslog:server=unix:/dev/log,nohostname,tag=nginx,severity=info json_analytics;
 
     sendfile        on;
     server_tokens   off;
