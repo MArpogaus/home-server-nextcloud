@@ -45,14 +45,11 @@ http {
         '"upstream_response_time": "$upstream_response_time", '
         '"upstream_response_length": "$upstream_response_length", '
         '"upstream_cache_status": "$upstream_cache_status", '
-        '"ssl_protocol": "$ssl_protocol", '
-        '"ssl_cipher": "$ssl_cipher", '
         '"scheme": "$scheme", '
         '"request_method": "$request_method", '
         '"server_protocol": "$server_protocol", '
         '"pipe": "$pipe", '
-        '"gzip_ratio": "$gzip_ratio", '
-        '"http_cf_ray": "$http_cf_ray"'
+        '"gzip_ratio": "$gzip_ratio"'
         '}';
 
     access_log  syslog:server=unix:/dev/log,nohostname,tag=nginx,severity=info json_analytics;
@@ -77,7 +74,6 @@ http {
 
     server {
         listen 80;
-        server_tokens off;
 
         add_header Strict-Transport-Security "max-age=15768000; includeSubDomains; preload;" always;
         add_header Referrer-Policy                   "no-referrer"       always;
@@ -91,7 +87,6 @@ http {
         fastcgi_buffers 64 4K;
         client_body_buffer_size 512k;
 
-        gzip on;
         gzip_vary on;
         gzip_comp_level 4;
         gzip_min_length 256;

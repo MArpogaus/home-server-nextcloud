@@ -1,4 +1,4 @@
-ARG NEXTCLOUD_TAG=35
+ARG NEXTCLOUD_TAG=34
 FROM nextcloud:${NEXTCLOUD_TAG}-fpm
 
 RUN set -ex; \
@@ -7,11 +7,8 @@ RUN set -ex; \
     apt-get install -y --no-install-recommends \
         ffmpeg \
         ghostscript \
-        procps \
     ; \
     rm -rf /var/lib/apt/lists/*
-
-ENV NEXTCLOUD_UPDATE=1
 
 COPY context/scripts/configure.sh /configure.sh
 COPY context/scripts/notify_push.sh /notify_push.sh

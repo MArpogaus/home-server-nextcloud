@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeuo pipefail
+set -euo pipefail
 
 APP_DIR=/var/www/html/custom_apps/recognize
 
@@ -7,15 +7,13 @@ occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-# Same shape as previewgenerator.sh and notify_push.sh: the container owns its
-# app, so a fresh host needs no manual step.
 if ! [ -d "$APP_DIR" ]; then
 	occ app:install recognize
 elif [ "$(occ config:app:get recognize enabled)" = "no" ]; then
 	occ app:enable recognize
 fi
 
-# One classifier at a time, in Recognize's low-memory profile: a 200-face batch took node to 1.9 GB.
+# Low-memory profile; README, Recognize.
 for kv in concurrency.enabled=false faces.batchSize=50 imagenet.batchSize=20 landmarks.batchSize=20 movinet.batchSize=5; do
 	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
 done
@@ -27,11 +25,8 @@ if ! [ -x "$APP_DIR/bin/node" ] || ! find "$APP_DIR/models" -name '*.json' -prin
 	occ recognize:download-models
 fi
 
-# Recognize classifies in background jobs, which otherwise run inside
-# nextcloud-cron. A worker of its own keeps a memory-hungry ML job from taking
-# cron.php down with it, and cron.php runs every other background job.
 J="OCA\\Recognize\\BackgroundJobs\\"
-JOB_CLASSES="${RECOGNIZE_JOB_CLASSES:-${J}ClassifyImagenetJob ${J}ClassifyFacesJob ${J}ClassifyLandmarksJob ${J}ClassifyMovinetJob ${J}ClassifyMusicnnJob}"
+JOB_CLASSES="${J}ClassifyImagenetJob ${J}ClassifyFacesJob ${J}ClassifyLandmarksJob ${J}ClassifyMovinetJob ${J}ClassifyMusicnnJob"
 
 # Not `exec occ`: occ is a shell function, and exec needs a real binary.
 # shellcheck disable=SC2086  # one argument per class

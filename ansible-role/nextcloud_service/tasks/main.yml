@@ -6,10 +6,8 @@
       nextcloud_service_app_image repository must be lowercase, got
       '{{ nextcloud_service_app_image }}'. Fix nextcloud_service_app_image in secrets/vars.yml.
 
-# Created once, owned by the service user so that the `podman unshare chown`
-# below can take them over. Enforcing the owner on every run would undo that
-# chown and report a change forever, so only missing directories are created.
-# group, not only owner: a dir left in group root is unmapped in the userns.
+# Only missing directories: enforcing the owner every run would undo the
+# `podman unshare chown` below.
 - name: Check which service directories exist
   ansible.builtin.stat:
     path: "{{ service_home }}/{{ item }}"
@@ -75,11 +73,10 @@
   no_log: true
 
 - name: Write the podman secrets that changed
-  ansible.builtin.shell:
-    cmd: >-
-      set -o pipefail &&
-      printf '%s' '{{ item.item.value }}' |
-      podman secret create --replace {{ item.item.name }} -
+  ansible.builtin.command:
+    cmd: podman secret create --replace {{ item.item.name }} -
+    stdin: "{{ item.item.value }}"
+    stdin_add_newline: false
   become: true
   become_user: "{{ service_user }}"
   loop: "{{ nextcloud_secret_current.results }}"
@@ -98,8 +95,6 @@
     group: "{{ service_user }}"
     mode: '0755'
 
-# Nextcloud 34 dies on a duplicate job run id now and then (JobRuns->started);
-# the reservation it leaves behind blocks the classifier for 12 hours.
 - name: Deploy the job reservation cleanup script
   ansible.builtin.template:
     src: unstick-jobs.sh.j2

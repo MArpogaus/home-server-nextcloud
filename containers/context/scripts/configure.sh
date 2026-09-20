@@ -1,11 +1,10 @@
 #!/bin/bash
-set -ex
+set -eu
 
 PHP_PATH=/usr/local/etc
 FPM_POOL="${PHP_PATH}/php-fpm.d/www.conf"
 
-# PHP-FPM optimization
-FPMS=${PHP_MAX_CHILDREN:-20}
+FPMS=${PHP_MAX_CHILDREN}
 PMaxSS=$((FPMS*2/3))
 PMinSS=$((PMaxSS/2))
 PStartS=$(((PMaxSS+PMinSS)/2))
@@ -19,16 +18,16 @@ if [ -n "${PHP_MAX_REQUESTS:-}" ]; then
     sed -i "s/;pm.max_requests = 500/pm.max_requests = $PHP_MAX_REQUESTS/" "$FPM_POOL"
 fi
 
-sed -i "s/;emergency_restart_threshold =.*/emergency_restart_threshold = ${PHP_EMERGENCY_RESTART_THRESHOLD:-10}/" "$PHP_PATH/php-fpm.conf"
-sed -i "s/;emergency_restart_interval =.*/emergency_restart_interval = ${PHP_EMERGENCY_RESTART_INTERVAL:-1m}/"   "$PHP_PATH/php-fpm.conf"
-sed -i "s/;process_control_timeout =.*/process_control_timeout = ${PHP_PROCESS_CONTROL_TIMEOUT:-10s}/"           "$PHP_PATH/php-fpm.conf"
+sed -i "s/;emergency_restart_threshold =.*/emergency_restart_threshold = ${PHP_EMERGENCY_RESTART_THRESHOLD}/" "$PHP_PATH/php-fpm.conf"
+sed -i "s/;emergency_restart_interval =.*/emergency_restart_interval = ${PHP_EMERGENCY_RESTART_INTERVAL}/"   "$PHP_PATH/php-fpm.conf"
+sed -i "s/;process_control_timeout =.*/process_control_timeout = ${PHP_PROCESS_CONTROL_TIMEOUT}/"           "$PHP_PATH/php-fpm.conf"
 
-# PHP settings (upstream entrypoint handles memory_limit, upload_limit)
-# Uses conf.d drop-in instead of sed on php.ini (which may not exist)
+# conf.d drop-in: the image ships no php.ini. memory_limit and upload_limit
+# come from the image's nextcloud.ini via PHP_MEMORY_LIMIT and PHP_UPLOAD_LIMIT.
 {
-    echo "max_execution_time = ${PHP_MAX_EXECUTION_TIME:-3600}"
-    echo "max_input_time = ${PHP_MAX_INPUT_TIME:-3600}"
-    echo "max_file_uploads = ${PHP_MAX_FILE_UPLOADS:-100}"
+    echo "max_execution_time = ${PHP_MAX_EXECUTION_TIME}"
+    echo "max_input_time = ${PHP_MAX_EXECUTION_TIME}"
+    echo "max_file_uploads = ${PHP_MAX_FILE_UPLOADS}"
     echo "allow_url_fopen = Off"
     echo "display_errors = Off"
     echo "expose_php = Off"
@@ -38,5 +37,4 @@ sed -i "s/;process_control_timeout =.*/process_control_timeout = ${PHP_PROCESS_C
     echo "allow_url_include = Off"
 } > "$PHP_PATH/php/conf.d/99-nextcloud-recommended.ini"
 
-echo executing default entrypoint
 exec "$@"

@@ -29,10 +29,8 @@ nextcloud_service_admin_user: admin
 nextcloud_service_trusted_domains: "cloud.example.com"
 nextcloud_service_url: "https://{{ nextcloud_service_trusted_domains.split(',')[0] | trim }}"
 
-# Bunkerweb traffic arrives through the host, from a LAN or link-local address.
 nextcloud_service_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
 
-# memory_limit x max_children is the real RAM budget.
 nextcloud_service_php_max_children: 8
 nextcloud_service_php_memory_limit: 512M
 nextcloud_service_php_max_requests: 500
@@ -43,8 +41,7 @@ nextcloud_service_php_emergency_restart_threshold: 10
 nextcloud_service_php_emergency_restart_interval: 1m
 nextcloud_service_php_process_control_timeout: 10s
 
-# Keep >= nextcloud_service_php_upload_limit.
-nextcloud_service_max_body_size: 15G
+nextcloud_service_max_body_size: "{{ nextcloud_service_php_upload_limit }}"
 
 nextcloud_service_db_dump_retention_days: 30
 nextcloud_service_notify_push_arch: "x86_64"

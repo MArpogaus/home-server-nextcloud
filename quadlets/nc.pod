@@ -1,5 +1,4 @@
 [Pod]
 PodName=nc
-# Loopback only. Bunkerweb reaches this through pasta's --map-host-loopback,
-# which it configures on the proxy pod. See the README of service-bunker.
+# Loopback only; BunkerWeb reaches it via pasta --map-host-loopback (service-bunker README).
 PublishPort=127.0.0.1:8080:80
