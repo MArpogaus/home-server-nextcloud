@@ -74,6 +74,10 @@ notify_push endpoint with `occ` on every run (`nextcloud_service_settings`),
 reading each value first so an unchanged deploy reports no change.
 `occ notify_push:self-test` proves the push path, but it calls the public URL,
 which on the test VM resolves to the real host: run it on the host it tests.
+There, four of its five checks pass; the fifth compares client addresses on
+a request that went out and came back through the router, whose hairpin NAT
+adds the home address as a hop that no trusted-proxy list should contain.
+Clients from outside carry one hop, the proxy, and are resolved correctly.
 `nextcloud_service_trusted_proxies` defaults to RFC1918 plus link-local
 because BunkerWeb's traffic arrives through the host.
 
