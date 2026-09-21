@@ -9,7 +9,6 @@ occ() {
 # is not always custom_apps.
 if ! occ app:getpath previewgenerator >/dev/null 2>&1; then
 	occ app:install previewgenerator
-	occ preview:generate-all &
 elif [ "$(occ config:app:get previewgenerator enabled)" = "no" ]; then
 	occ app:enable previewgenerator
 fi

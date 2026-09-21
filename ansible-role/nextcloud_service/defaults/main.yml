@@ -30,16 +30,14 @@ nextcloud_service_php_process_control_timeout: 10s
 
 nextcloud_service_db_dump_retention_days: 30
 
-# Links in mails and cron output, and the push server the clients are told
-# about. notify_push:setup would set the endpoint after a self-test against
-# the public URL, which the test VM cannot pass.
 # Apps beyond those the container entrypoints install; README, "Apps".
 nextcloud_service_apps:
   - admin_audit
 
+# Links in mails and cron output, and the push endpoint the clients are told
+# about; README, "Secrets and domains".
 nextcloud_service_settings:
   - {cmd: config:system, key: overwrite.cli.url, value: "{{ nextcloud_service_url }}"}
   - {cmd: config:system, key: overwriteprotocol, value: https}
   - {cmd: config:system, key: maintenance_window_start, value: 1}
   - {cmd: "config:app", key: "notify_push base_endpoint", value: "{{ nextcloud_service_url }}/push"}
-nextcloud_service_notify_push_arch: "x86_64"
