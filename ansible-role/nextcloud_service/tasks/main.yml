@@ -190,6 +190,23 @@
   changed_when: false  # occ cannot report whether the value already matched
 
 # Read first, set on difference: occ cannot report whether a value matched.
+- name: Read which apps are enabled
+  ansible.builtin.command:
+    cmd: podman exec -u www-data nextcloud-app php /var/www/html/occ app:list --output=json
+  become: true
+  become_user: "{{ service_user }}"
+  register: nextcloud_app_list
+  changed_when: false
+
+- name: Enable the apps the deployment needs
+  ansible.builtin.command:
+    cmd: podman exec -u www-data nextcloud-app php /var/www/html/occ app:enable {{ item }}
+  become: true
+  become_user: "{{ service_user }}"
+  loop: "{{ nextcloud_service_apps }}"
+  when: item not in (nextcloud_app_list.stdout | from_json).enabled
+  changed_when: true
+
 - name: Read the settings the role owns
   ansible.builtin.command: >-
     podman exec -u www-data nextcloud-app php /var/www/html/occ
