@@ -57,7 +57,7 @@ jobs:
       packages: write
       id-token: write
     # Pinned to a commit. Dependabot bumps it when a tag moves.
-    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@052a039cfdad3f6db40cb8931abd04cd529552f1
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@43aab5502f17190e28ce23d86beba4967df08d2d
     with:
       image-name: nextcloud
       containerfile: ./containers/Containerfile
