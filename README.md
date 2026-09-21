@@ -55,7 +55,7 @@ directly.
 | `nextcloud_service_php_memory_limit` | 512M |
 | `nextcloud_service_app_extra_args` | `--memory=2G` + tmpfs `/tmp` |
 | `nextcloud_service_db_extra_args` | `--memory=768M` |
-| `nextcloud_service_cron_extra_args` | `--memory=1G` |
+| `nextcloud_service_cron_extra_args` | `--memory=2G` |
 | `nextcloud_service_preview_extra_args` | `--memory=2G --cpus=1` |
 | `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=3` |
 | redis / web / push | 128M each |
@@ -194,7 +194,9 @@ the list) with `php -d memory_limit=1G`; a 50-face batch exhausted the 512 MB
 php-fpm limit. cron.php cannot exclude a class, so it still takes a classify
 job now and then; with `concurrency.enabled=false` (pinned by the worker
 entrypoint) that attempt returns in ten seconds whenever the worker holds a
-job. The entrypoint also pins Recognize's low-memory batch sizes (faces 50,
+job. When the worker is idle, cron runs the classifier itself, and one node
+process reached 1 GB: the cron container has the same 2 GB ceiling as the
+worker for that reason. The entrypoint also pins Recognize's low-memory batch sizes (faces 50,
 imagenet 20, landmarks 20, movinet 5): a 200-face batch took node to 1.9 GB.
 
 At one CPU the classifier managed an image every 35 s; the container has three
