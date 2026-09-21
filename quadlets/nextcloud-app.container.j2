@@ -19,8 +19,8 @@ AutoUpdate={{ nextcloud_service_auto_update }}
 # php-fpm listening is what nextcloud-web waits for (After= plus Notify=healthy);
 # without the gate nginx failed and restarted until the app was up.
 HealthCmd=bash -c "exec 3<>/dev/tcp/127.0.0.1/9000"
-HealthInterval=30s
-HealthStartPeriod=120s
+HealthInterval=10s
+HealthStartPeriod=60s
 Notify=healthy
 
 [Service]
