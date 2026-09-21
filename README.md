@@ -96,9 +96,15 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 
 The default stays on 34 until Preview Generator supports 35: on a 35 server
 its install fails with "not compatible" and the preview container restart-loops
-(2026-09-19). CI builds 32 to 35 all the same, so the switch is one variable.
-A major upgrade keeps two 2 GB images plus snapshots on disk; the test VM has
-40 GB for that reason.
+(2026-09-19). CI builds 32 to 35, so the switch is one variable. A major
+upgrade keeps two 2 GB images plus snapshots on disk; the test VM has 40 GB
+for that reason.
+
+`:34` is published from `main` only; a push to `dev` publishes `:34-dev`,
+which the test VM follows through its per-host vars. `AutoUpdate=registry`
+pulls whatever the tag points at that night, so a tag the real host follows
+must not move on every commit. The daily schedule rebuilds a version only
+when its base image changed (label `org.opencontainers.image.base.digest`).
 
 ## Backups
 

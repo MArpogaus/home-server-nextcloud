@@ -11,28 +11,52 @@ on:
 permissions: {}
 
 jobs:
+  # The schedule builds only the versions whose base image moved. The digest
+  # of the base is a label on every published image.
+  changed:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.compare.outputs.tags }}
+    steps:
+      - id: compare
+        run: |
+          set -euo pipefail
+          tags=()
+          for t in 32 33 34 35; do
+            if [ "${GITHUB_EVENT_NAME}" != "schedule" ]; then tags+=("$t"); continue; fi
+            base=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/library/nextcloud:${t}-fpm")
+            built=$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.base.digest"}}' \
+              "docker://ghcr.io/marpogaus/nextcloud:${t}" 2>/dev/null || echo none)
+            [ "$base" = "$built" ] || tags+=("$t")
+          done
+          printf 'tags=%s\n' "$(printf '%s\n' "${tags[@]}" | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: changed
+    if: needs.changed.outputs.tags != '[]'
     strategy:
       # Parallel jobs overwrite each other's `latest` digest between sign and
       # verify, which fails as "no signatures found". Serialised, the last wins.
       max-parallel: 1
       fail-fast: false
       matrix:
-        tag: [32, 33, 34, 35]
+        tag: ${{ fromJson(needs.changed.outputs.tags) }}
     permissions:
       contents: read
       actions: read
       packages: write
       id-token: write
-    # Pinned to the release commit. Dependabot bumps it when a tag moves.
-    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@7e52129c98111d7437960159061f3ab0b6fa2f33 # v1.6.0
+    # Pinned to a commit. Dependabot bumps it when a tag moves.
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@d1a96677edb54fd597433616ac51378a0ab0c613
     with:
       image-name: nextcloud
       containerfile: ./containers/Containerfile
       context: ./containers
       platform: linux/amd64
       free-disk-space: false
-      overwrite-ref-tag: ${{ matrix.tag }}
+      # dev publishes :<version>-dev for the test VM; the version tag that the
+      # real host follows comes from main only.
+      overwrite-ref-tag: ${{ matrix.tag }}${{ github.ref_name == 'dev' && '-dev' || '' }}
       build-args: |
         NEXTCLOUD_TAG=${{ matrix.tag }}
     secrets:
