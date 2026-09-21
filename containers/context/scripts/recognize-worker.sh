@@ -1,14 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-APP_DIR=/var/www/html/custom_apps/recognize
-
 occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-if ! [ -d "$APP_DIR" ]; then
+# app:getpath exits 1 when the app is not installed and otherwise names the
+# apps_paths entry it went into; the directory is not always custom_apps.
+APP_DIR="$(occ app:getpath recognize 2>/dev/null || true)"
+if [ -z "${APP_DIR}" ]; then
 	occ app:install recognize
+	APP_DIR="$(occ app:getpath recognize)"
 elif [ "$(occ config:app:get recognize enabled)" = "no" ]; then
 	occ app:enable recognize
 fi

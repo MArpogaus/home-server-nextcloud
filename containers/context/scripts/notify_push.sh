@@ -1,17 +1,21 @@
 #!/bin/bash
 set -eu
 
-APP_DIR=/var/www/html/custom_apps/notify_push
-BIN="${APP_DIR}/bin/${NOTIFY_PUSH_ARCH}/notify_push"
-
 occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-if ! [ -d "$APP_DIR" ]; then
+# app:getpath is the only honest test: it exits 1 when the app is not
+# installed, and otherwise names the apps_paths entry it went into, which is
+# custom_apps or apps depending on the config. `app:install` on an installed
+# app exits 1, so guessing the directory turns into a crash loop.
+APP_DIR="$(occ app:getpath notify_push 2>/dev/null || true)"
+if [ -z "${APP_DIR}" ]; then
 	occ app:install notify_push
+	APP_DIR="$(occ app:getpath notify_push)"
 fi
 occ app:enable notify_push
+BIN="${APP_DIR}/bin/${NOTIFY_PUSH_ARCH}/notify_push"
 
 # Without this the app is installed but unusable, which looks like a crash loop.
 if ! [ -x "$BIN" ]; then

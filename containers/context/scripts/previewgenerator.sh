@@ -5,7 +5,9 @@ occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-if ! [ -d /var/www/html/custom_apps/previewgenerator ]; then
+# app:getpath exits 1 when the app is not installed; the directory it lands in
+# is not always custom_apps.
+if ! occ app:getpath previewgenerator >/dev/null 2>&1; then
 	occ app:install previewgenerator
 	occ preview:generate-all &
 elif [ "$(occ config:app:get previewgenerator enabled)" = "no" ]; then
