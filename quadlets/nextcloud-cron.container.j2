@@ -18,17 +18,8 @@ Pod=nc.pod
 # Not the image's /cron.sh: it logs to /dev/stdout, which is a socket under
 # passthrough and cannot be opened. syslog lands in the journal as crond.
 Exec=busybox crond -f -S
-AutoUpdate={{ nextcloud_service_auto_update }}
-# PID 1 ignores default signals; catatonit forwards them so the pod stops without
-# waiting for SIGKILL. The image's SIGQUIT means nothing to a shell script.
 RunInit=true
 StopSignal=SIGTERM
 
 [Service]
-Restart=on-failure
-# A stop is a SIGTERM to the script, which dies with 143; that is not a failure.
 SuccessExitStatus=143
-RestartSec=10s
-
-[Install]
-WantedBy=default.target

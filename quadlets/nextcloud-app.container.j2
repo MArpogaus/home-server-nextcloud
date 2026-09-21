@@ -17,7 +17,6 @@ Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
 Pod=nc.pod
-AutoUpdate={{ nextcloud_service_auto_update }}
 # php-fpm listening is what nextcloud-web waits for (After= plus Notify=healthy);
 # without the gate nginx failed and restarted until the app was up.
 HealthCmd=bash -c "exec 3<>/dev/tcp/127.0.0.1/9000"
@@ -26,10 +25,5 @@ HealthStartPeriod=60s
 Notify=healthy
 
 [Service]
-Restart=on-failure
-RestartSec=10s
 # A first install copies the Nextcloud tree before php-fpm listens.
 TimeoutStartSec=900
-
-[Install]
-WantedBy=default.target

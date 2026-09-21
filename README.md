@@ -24,11 +24,10 @@ because containers in a pod share a network namespace and bind IPv4 only.
 
 ### Logging
 
-The pod runs with `LogDriver=passthrough` (`quadlets/container.d/log.conf`),
-so container output reaches the journal at the unit's priority instead of
-`err`. A journal stream is a socket, and nginx and php-fpm open their logs by
-path (`/dev/stdout`, `/proc/self/fd/2`), which fails with `ENXIO`. Both
-therefore log via syslog to `/dev/log`, mounted into the two containers:
+The pod runs with `LogDriver=passthrough`, so a program that opens its log by
+path gets `ENXIO` (`service-template/README.md`, "Conventions"). Four programs
+here do, and all of them log via syslog to `/dev/log`, mounted into their
+containers:
 
 - nginx: `error_log`/`access_log syslog:server=unix:/dev/log,tag=nginx` in
   `quadlets/configs/nginx.conf.j2`, and `Exec=nginx -e stderr -g "daemon off;"`
@@ -40,6 +39,8 @@ therefore log via syslog to `/dev/log`, mounted into the two containers:
   line, set by the role in `data/config/log.config.php`. The `errorlog` type
   went through php-fpm's caught worker output, which php-fpm drops when its
   own log is syslog; the application log was silently gone for half a day.
+- crond in the cron and preview containers: `busybox crond -f -S` instead of
+  the image's `/cron.sh`, which writes to `/dev/stdout`.
 
 Look for them with `journalctl SYSLOG_IDENTIFIER=nginx`, `=php-fpm` and
 `=nextcloud`. The `occ` processes (cron, worker) write to their unit's stream
@@ -212,10 +213,9 @@ traps met on the way:
 
 Recognize classifies in background jobs, which otherwise run inside
 `nextcloud-cron`. The worker container runs `occ background-job:worker` for the
-five `Classify*Job` classes of Recognize 12 (`RECOGNIZE_JOB_CLASSES` overrides
-the list) with `php -d memory_limit=1G`; a 50-face batch exhausted the 512 MB
-php-fpm limit. cron.php cannot exclude a class, so it still takes a classify
-job now and then; with `concurrency.enabled=false` (pinned by the worker
+five `Classify*Job` classes of Recognize 12 with `php -d memory_limit=1G`; a
+50-face batch exhausted the 512 MB php-fpm limit. cron.php cannot exclude a
+class, so it still takes a classify job now and then; with `concurrency.enabled=false` (pinned by the worker
 entrypoint) that attempt returns in ten seconds whenever the worker holds a
 job. When the worker is idle, cron runs the classifier itself, and one node
 process reached 1 GB: the cron container has the same 2 GB ceiling as the
@@ -236,6 +236,12 @@ The worker installs the app, fetches the models and the node binary (about
 app containers install and enable their apps the same way: preview and push.
 
 ## Traps in this role
+
+The four script containers (cron, preview, recognize, push) run a shell as
+PID 1, which ignores the image's `SIGQUIT`. `RunInit=true` puts catatonit in
+front so a pod stop is forwarded as `SIGTERM`, and `SuccessExitStatus=143`
+says that dying from it is not a failure. Without both, every stop waited ten
+seconds per container for `SIGKILL` and left four failed units behind.
 
 - The image entrypoint chowns the data and config mount points to `www-data`
   (uid 33 in the container). That fails when the host directory does not
@@ -275,14 +281,7 @@ by GitHub Actions, verified through the cosign policy on the host.
 
 ## Development
 
-Work on `dev`. Conventional commits.
-
-```bash
-pre-commit install --install-hooks -t pre-commit -t commit-msg -t pre-push
-```
-
-Plain `pre-commit install` wires up the pre-commit stage only, which leaves the
-commit-message and branch hooks dormant.
+Work on `dev`. Conventional commits. Hook setup: `ansible-base/README.md`.
 
 ## License
 

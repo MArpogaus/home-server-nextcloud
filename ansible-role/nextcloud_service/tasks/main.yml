@@ -90,8 +90,8 @@
 # The image copies its config drop-ins only when the Nextcloud version changes,
 # and a drop-in overrides config.php, so occ cannot change these values.
 - name: Route the Nextcloud log to syslog
-  ansible.builtin.template:
-    src: log.config.php.j2
+  ansible.builtin.copy:
+    src: log.config.php
     dest: "{{ service_home }}/data/config/log.config.php"
     mode: '0644'
 

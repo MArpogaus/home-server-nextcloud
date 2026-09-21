@@ -1,5 +1,4 @@
 ---
-nextcloud_service_auto_update: "registry"
 
 nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:34"
 nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
@@ -42,7 +41,6 @@ nextcloud_service_php_emergency_restart_threshold: 10
 nextcloud_service_php_emergency_restart_interval: 1m
 nextcloud_service_php_process_control_timeout: 10s
 
-nextcloud_service_max_body_size: "{{ nextcloud_service_php_upload_limit }}"
 
 nextcloud_service_db_dump_retention_days: 30
 

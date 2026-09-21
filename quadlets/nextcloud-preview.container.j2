@@ -16,17 +16,8 @@ Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
 Pod=nc.pod
 Exec=/previewgenerator.sh
-AutoUpdate={{ nextcloud_service_auto_update }}
-# PID 1 ignores default signals; catatonit forwards them so the pod stops without
-# waiting for SIGKILL. The image's SIGQUIT means nothing to a shell script.
 RunInit=true
 StopSignal=SIGTERM
 
 [Service]
-Restart=on-failure
-# A stop is a SIGTERM to the script, which dies with 143; that is not a failure.
 SuccessExitStatus=143
-RestartSec=10s
-
-[Install]
-WantedBy=default.target

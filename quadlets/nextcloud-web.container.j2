@@ -16,15 +16,7 @@ Volume=./configs/nginx.conf:/etc/nginx/nginx.conf:ro,z
 Volume=/dev/log:/dev/log
 Exec=nginx -e stderr -g "daemon off;"
 Pod=nc.pod
-AutoUpdate={{ nextcloud_service_auto_update }}
 HealthCmd=wget -qO /dev/null http://127.0.0.1/status.php
 HealthInterval=60s
 HealthStartPeriod=30s
 HealthOnFailure=kill
-
-[Service]
-Restart=on-failure
-RestartSec=10s
-
-[Install]
-WantedBy=default.target
