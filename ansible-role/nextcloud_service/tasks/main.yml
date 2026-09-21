@@ -1,4 +1,15 @@
 ---
+- name: Assert the Nextcloud passwords are set
+  ansible.builtin.assert:
+    that:
+      - nextcloud_service_db_password | length > 0
+      - nextcloud_service_admin_password | length > 0
+    fail_msg: >-
+      Set nextcloud_service_db_password and nextcloud_service_admin_password in
+      secrets/vars.yml. The example ships them empty, and Nextcloud installs
+      with an empty database and admin password without complaining.
+    quiet: true
+
 - name: Assert the Nextcloud image reference is lowercase
   ansible.builtin.assert:
     that: nextcloud_service_app_image.split(':')[0] == nextcloud_service_app_image.split(':')[0] | lower
@@ -110,15 +121,7 @@
     group: "{{ service_user }}"
     mode: '0755'
 
-- name: Deploy the job reservation cleanup script
-  ansible.builtin.template:
-    src: unstick-jobs.sh.j2
-    dest: "{{ service_home }}/bin/unstick-jobs.sh"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
-    mode: '0755'
-
-# Both timers are Persistent: after downtime they start together at boot.
+# The timer is Persistent: after downtime it runs once at boot.
 - name: Make room for the snapshot drop-in
   ansible.builtin.file:
     path: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d
@@ -135,7 +138,7 @@
     owner: root
     mode: '0644'
 
-- name: Template the pg_dumpall and unstick-jobs services and timers
+- name: Template the pg_dumpall service and timer
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
@@ -144,10 +147,8 @@
   loop:
     - pg-dumpall.service
     - pg-dumpall.timer
-    - unstick-jobs.service
-    - unstick-jobs.timer
 
-- name: Enable and start the pg_dumpall and unstick-jobs timers
+- name: Enable and start the pg_dumpall timer
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
@@ -155,7 +156,6 @@
     daemon_reload: true
   loop:
     - pg-dumpall.timer
-    - unstick-jobs.timer
 
 - name: Deploy the Quadlets
   ansible.builtin.import_role:

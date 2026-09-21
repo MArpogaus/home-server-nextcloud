@@ -1,4 +1,0 @@
-#!/bin/bash
-# A job whose process died keeps reserved_at; getNext then skips it for 12 h.
-exec podman exec nextcloud-db psql -U {{ nextcloud_service_db_user }} -d {{ nextcloud_service_db_name }} -qtAc \
-	"update oc_jobs set reserved_at = 0 where class like '%Recognize%Classify%' and reserved_at > 0 and reserved_at < extract(epoch from now())::bigint - 1800"

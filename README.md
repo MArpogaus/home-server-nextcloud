@@ -233,11 +233,14 @@ imagenet 20, landmarks 20, movinet 5): a 200-face batch took node to 1.9 GB.
 At one CPU the classifier managed an image every 35 s; the container has three
 (`--cpus=3`). Sequential by design, imagenet first, faces after.
 
-Nextcloud 34 kills a worker now and then with a duplicate snowflake `run_id` in
-`oc_job_runs` (`SQLSTATE[23505]`, several `occ` processes in one pod), and a
-job whose process died keeps `reserved_at` set, which blocks the classifiers
-for 12 hours. `unstick-jobs.timer` resets reservations older than 30 minutes
-every 15 minutes.
+Nextcloud 34 used to kill a worker now and then with a duplicate snowflake
+`run_id` in `oc_job_runs` (`SQLSTATE[23505]`, several `occ` processes in one
+pod), and a job whose process died keeps `reserved_at` set, which blocks the
+classifiers for 12 hours. A timer used to clear stale reservations; it was
+removed on 2026-09-21 after a week without a single such crash, and because
+its threshold was close enough to a legitimate batch to free a job that was
+still being worked on. If classification stalls, look for `reserved_at` on
+`oc_jobs` rows whose worker is gone.
 
 The worker installs the app, fetches the models and the node binary (about
 2.9 GB, once), and starts late on a fresh host for that reason. The other two
