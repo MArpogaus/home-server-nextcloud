@@ -8,7 +8,7 @@ EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
 # runuser switches to www-data.
 AddCapability=SETGID SETUID
-PodmanArgs={{ nextcloud_service_push_extra_args }}
+Memory=128M
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z

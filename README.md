@@ -54,16 +54,10 @@ directly.
 |---|---|
 | `nextcloud_service_php_max_children` | 8 |
 | `nextcloud_service_php_memory_limit` | 512M |
-| `nextcloud_service_app_extra_args` | `--memory=2G` + tmpfs `/tmp` |
-| `nextcloud_service_db_extra_args` | `--memory=768M` |
-| `nextcloud_service_cron_extra_args` | `--memory=2G` |
-| `nextcloud_service_preview_extra_args` | `--memory=2G --cpus=1` |
-| `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=3` |
-| redis / web / push | 128M each |
 
-Capabilities: `container.d/hardening.conf` drops all. Each container adds
-back what its root entrypoint needs (`AddCapability=` in the Quadlet, with
-the reason). `SETUID SETGID` everywhere: the image switches to `www-data`.
+Container ceilings are `Memory=` in the Quadlets: 2G for app, cron and
+Recognize, 768M for the database, 128M for redis, web and push. Recognize and
+the preview generator also carry a `CPUQuota=`.
 
 The ceilings add up to more than the host has. They are limits, not
 reservations, and the two heavy jobs are bursty. PHP's `max_children` times
@@ -243,7 +237,7 @@ sizes (faces 50, imagenet 20, landmarks 20, movinet 5); a 200-face batch
 takes node to 1.9 GB.
 
 At one CPU the classifier managed an image every 35 s; the container has three
-(`--cpus=3`). Sequential by design, imagenet first, faces after.
+(`CPUQuota=300%`). Sequential by design, imagenet first, faces after.
 
 A background job is reserved by writing `reserved_at` on its `oc_jobs` row,
 and a job whose process dies keeps that reservation, which makes the
