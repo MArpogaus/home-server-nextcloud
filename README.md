@@ -146,6 +146,16 @@ store hands back) stay out of every snapshot and backup. The subvolume is
 created owned by the service user and kept at mode `0755`: nginx runs as its
 own uid in `nextcloud-web` and must traverse it, or every app asset answers 404.
 
+An app only lands there because `apps.config.php` puts `custom_apps` on
+`apps_paths`, and the image copies that file into the mounted config directory
+**only while that directory is still empty**, on the very first container
+start. Anything the role writes into `config/` before then costs the whole
+bootstrap: `apps_paths` stays unset, every app installs into `apps/`, and the
+image's `rsync --delete` wipes `apps/` on the next version upgrade. That is why
+the log drop-in is written after the install, not before. The container scripts
+ask `occ app:getpath` rather than assuming a directory, so a host that is
+already in that state still starts.
+
 ### Restoring the own dump
 
 Do this once deliberately before you trust the backups. The functional suite
@@ -206,14 +216,13 @@ onto a fresh deploy, in this order, with the traps each step avoids:
    `db:add-missing-indices`, `db:add-missing-columns`,
    `db:add-missing-primary-keys`, `files:scan --all`, `files:scan-app-data`,
    `setupchecks`. Then read the *disabled* list of `occ app:list`: a bundled
-   app the old host had disabled never ran its migrations, but core still
-   writes its columns. Here `systemtags` was off, `oc_systemtag` lacked `etag`
-   and `color`, and every Recognize tagging run died with `SQLSTATE[25P02]`.
-   `occ app:enable systemtags` added them. Apps that the old host had
-   installed from the store are not in the copy; `occ app:install` them.
-6. **Previews.** The copy left the preview files out, but Nextcloud 34 tracks
-   previews in `oc_previews`, so it believed every preview existed and
-   generated none; `files:scan-app-data` does not repair that.
+   app that is disabled on the source never ran its migrations, while core
+   still writes its columns, and the missing columns surface later as
+   `SQLSTATE[25P02]` in an unrelated job. Enable such an app and its migrations
+   add them. Store apps are not part of a file copy; `occ app:install` them.
+6. **Previews.** Nextcloud tracks previews in `oc_previews`, so a copy that
+   carries the table but not the preview files leaves the instance believing
+   every preview exists. `files:scan-app-data` does not repair that.
    `occ preview:cleanup` wipes table and tree, then `preview:generate-all` in
    the preview container rebuilds them (hours; it aborts on a race with
    another process saving the same preview and skips finished work on rerun).
@@ -256,8 +265,8 @@ app containers install and enable their apps the same way: preview and push.
 The four script containers (cron, preview, recognize, push) run a shell as
 PID 1, which ignores the image's `SIGQUIT`. `RunInit=true` puts catatonit in
 front so a pod stop is forwarded as `SIGTERM`, and `SuccessExitStatus=143`
-says that dying from it is not a failure. Without both, every stop waited ten
-seconds per container for `SIGKILL` and left four failed units behind.
+says that dying from it is not a failure. Without both, every stop waits ten
+seconds per container for `SIGKILL` and leaves four failed units behind.
 
 - The image entrypoint chowns the data and config mount points to `www-data`
   (uid 33 in the container). That fails when the host directory does not
@@ -269,8 +278,8 @@ seconds per container for `SIGKILL` and left four failed units behind.
 - `Requires=nextcloud-app.service` on `nextcloud-web` stops the web container
   when the app is restarted by hand and does not start it again. The role
   restarts the pod, not single containers. `nextcloud-app` reports healthy
-  (`Notify=healthy`) once php-fpm listens, and nginx starts after that; before
-  the gate every deploy was 40 nginx restarts.
+  (`Notify=healthy`) once php-fpm listens, and nginx starts after that. Without
+  that gate nginx restarts dozens of times per deploy waiting for the socket.
 - The image repository name must be lowercase. podman reports the error at
   pull time only, which looks like a restart loop.
 

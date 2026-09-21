@@ -99,24 +99,6 @@
   no_log: true
   register: nextcloud_secrets_written
 
-# The image copies its config drop-ins only when the Nextcloud version changes,
-# and a drop-in overrides config.php, so occ cannot change these values.
-- name: Route the Nextcloud log to syslog
-  ansible.builtin.copy:
-    src: log.config.php
-    dest: "{{ service_home }}/data/config/log.config.php"
-    mode: '0644'
-
-# The copy above runs as root, so a newly created file lands root-owned and
-# outside the user namespace map. --reference copies the owner of the config
-# directory, which the task above already handed to the container's www-data.
-- name: Hand the log drop-in to the container www-data user
-  ansible.builtin.command:
-    cmd: >-
-      chown --reference={{ service_home }}/data/config
-      {{ service_home }}/data/config/log.config.php
-  changed_when: false
-
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
     src: pre-snapshot-pg-dump.sh.j2
@@ -179,6 +161,28 @@
   failed_when:
     - nextcloud_status.attempts | default(0) >= 30
     - '"\"installed\":true" not in nextcloud_status.stdout'
+
+# Only after the first start. The image copies its config/*.config.php into
+# the mounted config directory only while that directory is empty, and one of
+# them is apps.config.php, which is what puts custom_apps on apps_paths. A
+# file written here beforehand leaves apps_paths unset, so every app installs
+# into apps/, which the image's rsync --delete wipes on the next upgrade.
+# A drop-in also overrides config.php, so occ cannot change these values.
+- name: Route the Nextcloud log to syslog
+  ansible.builtin.copy:
+    src: log.config.php
+    dest: "{{ service_home }}/data/config/log.config.php"
+    mode: '0644'
+
+# The copy runs as root, so a new file lands root-owned and outside the user
+# namespace map. --reference takes the owner from the config directory, which
+# belongs to the container's www-data.
+- name: Hand the log drop-in to the container www-data user
+  ansible.builtin.command:
+    cmd: >-
+      chown --reference={{ service_home }}/data/config
+      {{ service_home }}/data/config/log.config.php
+  changed_when: false
 
 # The image honors NEXTCLOUD_TRUSTED_DOMAINS on first install only.
 - name: Ensure the configured domains are trusted
