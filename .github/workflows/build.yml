@@ -39,13 +39,7 @@ jobs:
               "docker://ghcr.io/marpogaus/nextcloud:${t}" 2>/dev/null || echo none)
             [ "$base" = "$built" ] || tags+=("$t")
           done
-          # printf applies the format once even for an empty array, which
-          # would emit [""] and run the matrix with an empty tag.
-          if [ ${#tags[@]} -eq 0 ]; then
-            echo 'tags=[]' >> "$GITHUB_OUTPUT"
-          else
-            printf 'tags=%s\n' "$(printf '%s\n' "${tags[@]}" | jq -R . | jq -sc .)" >> "$GITHUB_OUTPUT"
-          fi
+          printf 'tags=%s\n' "$(jq -cn '$ARGS.positional' --args "${tags[@]}")" >> "$GITHUB_OUTPUT"
 
   build:
     needs: changed
