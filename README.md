@@ -135,9 +135,12 @@ when its base image changed (label `org.opencontainers.image.base.digest`).
 
 ## Backups
 
-`pg-dumpall.timer` (23:55) dumps the cluster into `data/db_dumps/`, so the
-nightly Btrfs snapshot (00:00, `ansible-base`) holds a consistent database;
-a drop-in orders the snapshot after the dump for the night both start late.
+`pg-dumpall.service` dumps the cluster into `data/db_dumps/`, so the nightly
+Btrfs snapshot (00:00, `ansible-base`) holds a consistent database. The dump
+has no timer of its own: a drop-in gives the snapshot unit `Wants=` and
+`After=` on it, which starts the dump in the same transaction and orders it
+first. Two timers would be two transactions, and `After=` orders nothing
+between them.
 The dump is written as `.tmp` and renamed on success, so a dump that died
 halfway is never snapshotted under a real name. Dumps older than 30 days are
 pruned. The dump has no `DROP` statements and the

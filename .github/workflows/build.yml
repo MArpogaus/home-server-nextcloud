@@ -10,6 +10,12 @@ on:
 
 permissions: {}
 
+# Two runs publishing the same tags would overwrite each other's digest
+# between signing and verification.
+concurrency:
+  group: build-${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   # The schedule builds only the versions whose base image moved. The digest
   # of the base is a label on every published image.

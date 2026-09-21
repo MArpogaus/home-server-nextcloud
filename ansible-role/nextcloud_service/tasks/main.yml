@@ -134,6 +134,11 @@
     dest: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d/after-dump.conf
     content: |
       [Unit]
+      # Wants pulls the dump into the snapshot's transaction and After
+      # orders it first, so the snapshot always holds the dump just taken.
+      # After alone orders nothing: two timers are two transactions. Wants,
+      # not Requires, so a failed dump still leaves a file snapshot.
+      Wants=pg-dumpall.service
       After=pg-dumpall.service
     owner: root
     mode: '0644'
@@ -146,16 +151,10 @@
     mode: '0644'
   loop:
     - pg-dumpall.service
-    - pg-dumpall.timer
 
-- name: Enable and start the pg_dumpall timer
-  ansible.builtin.systemd:
-    name: "{{ item }}"
-    enabled: true
-    state: started
+- name: Reload the manager so the snapshot drop-in takes effect
+  ansible.builtin.systemd_service:
     daemon_reload: true
-  loop:
-    - pg-dumpall.timer
 
 - name: Deploy the Quadlets
   ansible.builtin.import_role:
@@ -170,7 +169,9 @@
   become_user: "{{ service_user }}"
   register: nextcloud_status
   until: '"\"installed\":true" in nextcloud_status.stdout'
-  retries: 30
+  # A major upgrade runs occ upgrade inside the container before php-fpm
+  # listens, which takes minutes; the unit allows 1800 s, so wait for it.
+  retries: 120
   delay: 10
   changed_when: false
   failed_when:
