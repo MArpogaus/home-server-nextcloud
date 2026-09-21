@@ -25,5 +25,9 @@ HealthStartPeriod=60s
 Notify=healthy
 
 [Service]
-# A first install copies the Nextcloud tree before php-fpm listens.
-TimeoutStartSec=900
+# php-fpm listens only after the entrypoint has copied the Nextcloud tree (a
+# first install) and run occ upgrade (a version change). The 34-to-35 upgrade
+# took eight minutes on the test VM, most of it Recognize redownloading its
+# TensorFlow binaries; a kill in the middle of that leaves a half-migrated
+# database.
+TimeoutStartSec=1800

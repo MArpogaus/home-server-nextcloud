@@ -103,12 +103,20 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 
 ### Nextcloud version
 
-The default stays on 34 until the apps support 35: Preview Generator's install
-failed with "not compatible" on a 35 server and the preview container
-restart-looped (2026-09-19; fixed upstream since). CI builds 34 and 35 and
-tags the highest as `latest`, so the switch is one variable. A major
-upgrade keeps two 2 GB images plus snapshots on disk; the test VM has 40 GB
-for that reason.
+CI builds 34 and 35 and tags the highest as `latest`, so the switch is one
+variable. A major upgrade keeps two 2 GB images plus snapshots on disk; the
+test VM has 40 GB for that reason.
+
+A major upgrade was rehearsed on the test VM (34.0.4 to 35.0.0, 2026-09-21):
+change the tag, deploy, and the image's entrypoint runs `occ upgrade` by
+itself. The app is unreachable for the whole run, eight minutes on the VM,
+most of it Recognize redownloading its TensorFlow binaries; `TimeoutStartSec`
+is 1800 s so systemd cannot kill the container mid-migration. Take the
+database dump and the snapshot first (`systemctl start pg-dumpall.service
+btrfs-snapshot@nextcloud.service`), because the upgrade is one way. 35
+disabled `encryption`, `files_external`, `suspicious_login`,
+`twofactor_nextcloud_notification` and `user_ldap`, none of which this
+deployment uses; Recognize and Preview Generator came back enabled.
 
 `:34` is published from `main` only; a push to `dev` publishes `:34-dev`,
 which the test VM follows through its per-host vars. `AutoUpdate=registry`
