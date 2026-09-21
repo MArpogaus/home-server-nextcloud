@@ -12,7 +12,7 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
-Entrypoint=/notify_push.sh
+Exec=/notify_push.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
 # notify_push answers 404 on /, which still proves the listener is up.
 HealthCmd=curl -s -o /dev/null http://127.0.0.1:7867/

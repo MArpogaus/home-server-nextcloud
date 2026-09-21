@@ -33,7 +33,7 @@ therefore log via syslog to `/dev/log`, mounted into the two containers:
 - nginx: `error_log`/`access_log syslog:server=unix:/dev/log,tag=nginx` in
   `quadlets/configs/nginx.conf.j2`, and `Exec=nginx -e stderr -g "daemon off;"`
   because nginx opens its compiled-in log path before it reads the config.
-- php-fpm: `error_log = syslog` from `containers/context/configs/zz-log.conf`,
+- php-fpm: `error_log = syslog` from `containers/context/configs/zz-pool.conf`,
   `syslog.ident = php-fpm`. The fpm access log is off; nginx logs every
   request as JSON.
 - Nextcloud itself: `log_type syslog`, tag `nextcloud`, one JSON object per
@@ -255,11 +255,14 @@ podman secret restarts the pod through `quadlet_service_restart`.
 
 ## Custom image
 
-`containers/Containerfile` adds ffmpeg and ghostscript, `configure.sh`
-(PHP-FPM pool sizing from `PHP_MAX_CHILDREN`), the three app entrypoints
-(`notify_push.sh`, `previewgenerator.sh`, `recognize-worker.sh`), the php-fpm
-syslog drop-in and config drop-ins. Built and signed by GitHub Actions for
-tags 32 to 35, verified through the cosign policy on the host.
+`containers/Containerfile` adds ffmpeg and ghostscript, the three app scripts
+(`notify_push.sh`, `previewgenerator.sh`, `recognize-worker.sh`), one php-fpm
+drop-in (`zz-pool.conf`: syslog, pool sizing and php values from the
+environment) and two `config.php` drop-ins (preview sizes, phone region).
+Every container runs the image's own entrypoint; the app container's command
+is `php-fpm`, which is what makes the entrypoint install or upgrade
+Nextcloud, and the others pass their script as the command. Built and signed
+by GitHub Actions, verified through the cosign policy on the host.
 
 ## Development
 

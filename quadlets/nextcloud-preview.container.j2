@@ -12,7 +12,7 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
-Entrypoint=/previewgenerator.sh
+Exec=/previewgenerator.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
 
 [Service]

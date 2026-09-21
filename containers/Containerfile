@@ -10,13 +10,13 @@ RUN set -ex; \
     ; \
     rm -rf /var/lib/apt/lists/*
 
-COPY context/scripts/configure.sh /configure.sh
+# The image's own entrypoint stays. It installs or upgrades Nextcloud only
+# when the command is php-fpm, so the other containers pass their script as
+# the command and skip that branch.
 COPY context/scripts/notify_push.sh /notify_push.sh
 COPY context/scripts/previewgenerator.sh /previewgenerator.sh
 COPY context/scripts/recognize-worker.sh /recognize-worker.sh
-RUN chmod +x /configure.sh /notify_push.sh /previewgenerator.sh /recognize-worker.sh
+RUN chmod +x /notify_push.sh /previewgenerator.sh /recognize-worker.sh
 COPY context/configs/prev.config.php /usr/src/nextcloud/config/
 COPY context/configs/phone.config.php /usr/src/nextcloud/config/
-COPY context/configs/zz-log.conf /usr/local/etc/php-fpm.d/
-ENTRYPOINT ["/configure.sh"]
-CMD /entrypoint.sh php-fpm
+COPY context/configs/zz-pool.conf /usr/local/etc/php-fpm.d/
