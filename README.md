@@ -60,6 +60,10 @@ directly.
 | `nextcloud_service_recognize_extra_args` | `--memory=2G --cpus=3` |
 | redis / web / push | 128M each |
 
+Capabilities: `container.d/hardening.conf` drops all. Each container adds
+back what its root entrypoint needs (`AddCapability=` in the Quadlet, with
+the reason). `SETUID SETGID` everywhere: the image switches to `www-data`.
+
 The ceilings add up to more than the host has. They are limits, not
 reservations, and the two heavy jobs are bursty. PHP's `max_children` times
 `memory_limit` is the real budget; override one without the other and the

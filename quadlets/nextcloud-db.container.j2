@@ -4,6 +4,8 @@ ContainerName=nextcloud-db
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
 Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
+# the entrypoint fixes the data dir, then gosu postgres.
+AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
 PodmanArgs={{ nextcloud_service_db_extra_args }}
 Pod=nc.pod
 AutoUpdate={{ nextcloud_service_auto_update }}

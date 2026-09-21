@@ -23,4 +23,6 @@ occ config:app:set --value=false --type=boolean previewgenerator job_disabled
 # This container runs previews only, so it owns the crontab; cron.php stays in
 # nextcloud-cron.
 echo "*/10 * * * * php /var/www/html/occ preview:pre-generate" > /var/spool/cron/crontabs/www-data
-exec /cron.sh
+# Not /cron.sh: it logs to /dev/stdout, a socket under passthrough. syslog goes
+# to the mounted /dev/log.
+exec busybox crond -f -S

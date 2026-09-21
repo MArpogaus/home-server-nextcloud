@@ -6,19 +6,18 @@ nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
 nextcloud_service_redis_image: "docker.io/library/redis:8-alpine"
 nextcloud_service_nginx_image: "docker.io/library/nginx:mainline-alpine"
 
-nextcloud_service_db_extra_args: "--memory=768M --pids-limit=512 --security-opt=no-new-privileges"
-# No --cap-drop=ALL: the redis entrypoint needs CAP_SETUID and CAP_SETGID.
-nextcloud_service_redis_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
-nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec --pids-limit=512 --security-opt=no-new-privileges"
-nextcloud_service_web_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_db_extra_args: "--memory=768M"
+nextcloud_service_redis_extra_args: "--memory=128M"
+nextcloud_service_app_extra_args: "--memory=2G --mount type=tmpfs,destination=/tmp:exec"
+nextcloud_service_web_extra_args: "--memory=128M"
 # 2G, not 1G: cron.php cannot refuse a Recognize job, and one node classifier
 # took 1 GB (OOM-killed on 2026-09-21).
-nextcloud_service_cron_extra_args: "--memory=2G --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_cron_extra_args: "--memory=2G"
 # --cpus keeps a bulk upload from saturating the thin client.
-nextcloud_service_preview_extra_args: "--memory=2G --cpus=1 --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_preview_extra_args: "--memory=2G --cpus=1"
 # Its own container, so an OOM takes the classifier and not cron.php.
-nextcloud_service_recognize_extra_args: "--memory=2G --cpus=3 --pids-limit=512 --security-opt=no-new-privileges"
-nextcloud_service_push_extra_args: "--memory=128M --pids-limit=512 --security-opt=no-new-privileges"
+nextcloud_service_recognize_extra_args: "--memory=2G --cpus=3"
+nextcloud_service_push_extra_args: "--memory=128M"
 
 nextcloud_service_secrets:
   - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}

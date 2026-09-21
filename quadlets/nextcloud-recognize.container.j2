@@ -6,6 +6,8 @@ Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-recognize
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+# runuser switches to www-data.
+AddCapability=SETGID SETUID
 PodmanArgs={{ nextcloud_service_recognize_extra_args }}
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
@@ -14,9 +16,15 @@ Volume={{ service_home }}/data/config:/var/www/html/config:z
 Pod=nc.pod
 Exec=/recognize-worker.sh
 AutoUpdate={{ nextcloud_service_auto_update }}
+# PID 1 ignores default signals; catatonit forwards them so the pod stops without
+# waiting for SIGKILL. The image's SIGQUIT means nothing to a shell script.
+RunInit=true
+StopSignal=SIGTERM
 
 [Service]
 Restart=on-failure
+# A stop is a SIGTERM to the script, which dies with 143; that is not a failure.
+SuccessExitStatus=143
 RestartSec=30s
 
 [Install]
