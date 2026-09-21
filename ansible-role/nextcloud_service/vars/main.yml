@@ -2,3 +2,4 @@
 quadlet_service_pod: nc
 quadlet_service_config_modes:
   nextcloud.env: '0600'
+  db.env: '0600'

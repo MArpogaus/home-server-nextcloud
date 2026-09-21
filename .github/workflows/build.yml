@@ -17,12 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.compare.outputs.tags }}
+      latest: ${{ steps.compare.outputs.latest }}
     steps:
       - id: compare
         run: |
           set -euo pipefail
+          # The deployed major and the next one; latest is the highest.
+          versions="34 35"
+          printf 'latest=%s\n' "${versions##* }" >> "$GITHUB_OUTPUT"
           tags=()
-          for t in 32 33 34 35; do
+          for t in $versions; do
             if [ "${GITHUB_EVENT_NAME}" != "schedule" ]; then tags+=("$t"); continue; fi
             base=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/library/nextcloud:${t}-fpm")
             built=$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.base.digest"}}' \
@@ -47,7 +51,7 @@ jobs:
       packages: write
       id-token: write
     # Pinned to a commit. Dependabot bumps it when a tag moves.
-    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@d1a96677edb54fd597433616ac51378a0ab0c613
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@052a039cfdad3f6db40cb8931abd04cd529552f1
     with:
       image-name: nextcloud
       containerfile: ./containers/Containerfile
@@ -57,6 +61,7 @@ jobs:
       # dev publishes :<version>-dev for the test VM; the version tag that the
       # real host follows comes from main only.
       overwrite-ref-tag: ${{ matrix.tag }}${{ github.ref_name == 'dev' && '-dev' || '' }}
+      latest-tag: ${{ matrix.tag == needs.changed.outputs.latest }}
       build-args: |
         NEXTCLOUD_TAG=${{ matrix.tag }}
     secrets:

@@ -102,9 +102,10 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 
 ### Nextcloud version
 
-The default stays on 34 until Preview Generator supports 35: on a 35 server
-its install fails with "not compatible" and the preview container restart-loops
-(2026-09-19). CI builds 32 to 35, so the switch is one variable. A major
+The default stays on 34 until the apps support 35: Preview Generator's install
+failed with "not compatible" on a 35 server and the preview container
+restart-looped (2026-09-19; fixed upstream since). CI builds 34 and 35 and
+tags the highest as `latest`, so the switch is one variable. A major
 upgrade keeps two 2 GB images plus snapshots on disk; the test VM has 40 GB
 for that reason.
 
@@ -258,7 +259,7 @@ Inherited from `site.yml`: `service_name`, `service_user`, `service_home`,
 deploys everything under `quadlets/`: `.j2` files are templated, `container.d/`
 drop-ins and all other files are copied, and the pod restarts only when one of
 them changed. `quadlet_service_pod: nc`, because the pod file is `nc.pod`, and
-`nextcloud.env` is mode `0600`; both are set in `vars/main.yml`. A rewritten
+`nextcloud.env` and `db.env` are mode `0600`; all set in `vars/main.yml`. A rewritten
 podman secret restarts the pod through `quadlet_service_restart`.
 
 ## Custom image
