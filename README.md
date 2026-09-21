@@ -72,6 +72,8 @@ DB credentials, admin user, trusted domains and PHP tuning come from
 `overwrite.cli.url`, `overwriteprotocol`, `maintenance_window_start` and the
 notify_push endpoint with `occ` on every run (`nextcloud_service_settings`),
 reading each value first so an unchanged deploy reports no change.
+`occ notify_push:self-test` proves the push path, but it calls the public URL,
+which on the test VM resolves to the real host: run it on the host it tests.
 `nextcloud_service_trusted_proxies` defaults to RFC1918 plus link-local
 because BunkerWeb's traffic arrives through the host.
 
