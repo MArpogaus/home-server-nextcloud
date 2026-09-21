@@ -37,8 +37,8 @@ containers:
   request as JSON.
 - Nextcloud itself: `log_type syslog`, tag `nextcloud`, one JSON object per
   line, set by the role in `data/config/log.config.php`. The `errorlog` type
-  went through php-fpm's caught worker output, which php-fpm drops when its
-  own log is syslog; the application log was silently gone for half a day.
+  would go through php-fpm's caught worker output, which php-fpm discards
+  when its own log is syslog, and the application log would vanish silently.
 - crond in the cron and preview containers: `busybox crond -f -S` instead of
   the image's `/cron.sh`, which writes to `/dev/stdout`.
 
@@ -69,6 +69,16 @@ The ceilings add up to more than the host has. They are limits, not
 reservations, and the two heavy jobs are bursty. PHP's `max_children` times
 `memory_limit` is the real budget; override one without the other and the
 deployment breaks.
+
+### Apps
+
+The three helper containers install and enable their own app on start:
+preview generator, Recognize and notify_push. Anything else the deployment
+needs goes in `nextcloud_service_apps`, which the role enables and leaves
+alone afterwards. It holds `admin_audit`, which writes one log line per
+action (who did what to which file); `service-monitoring` reads those lines
+for the file activity panels on its Nextcloud dashboard, so removing the app
+empties them.
 
 ### Secrets and domains
 
@@ -107,16 +117,15 @@ CI builds 34 and 35 and tags the highest as `latest`, so the switch is one
 variable. A major upgrade keeps two 2 GB images plus snapshots on disk; the
 test VM has 40 GB for that reason.
 
-A major upgrade was rehearsed on the test VM (34.0.4 to 35.0.0, 2026-09-21):
-change the tag, deploy, and the image's entrypoint runs `occ upgrade` by
-itself. The app is unreachable for the whole run, eight minutes on the VM,
-most of it Recognize redownloading its TensorFlow binaries; `TimeoutStartSec`
-is 1800 s so systemd cannot kill the container mid-migration. Take the
-database dump and the snapshot first (`systemctl start pg-dumpall.service
-btrfs-snapshot@nextcloud.service`), because the upgrade is one way. 35
-disabled `encryption`, `files_external`, `suspicious_login`,
-`twofactor_nextcloud_notification` and `user_ldap`, none of which this
-deployment uses; Recognize and Preview Generator came back enabled.
+To upgrade a major version: take the dump and the snapshot first
+(`systemctl start pg-dumpall.service btrfs-snapshot@nextcloud.service`),
+because the upgrade is one way, then change the tag and deploy. The image's
+entrypoint runs `occ upgrade` itself. The app is unreachable for the whole
+run, on the order of ten minutes, most of it Recognize redownloading its
+TensorFlow binaries; `TimeoutStartSec` is 1800 s so systemd cannot kill the
+container mid-migration. Expect a major version to disable apps it has no
+release for; `occ app:list` names them, and the ones this deployment needs
+are in `nextcloud_service_apps` and the container entrypoints.
 
 `:34` is published from `main` only; a push to `dev` publishes `:34-dev`,
 which the test VM follows through its per-host vars. `AutoUpdate=registry`
@@ -158,9 +167,8 @@ The two `role already exists` errors at the top of the dump are expected.
 
 ### Restoring from a copy of another host
 
-The 2026-09-19 migration restored a `pg_dumpall -c` dump plus the data
-directory from a NAS onto a fresh deploy. The order that worked, with the
-traps met on the way:
+To restore a `pg_dumpall -c` dump plus a data directory from another host
+onto a fresh deploy, in this order, with the traps each step avoids:
 
 1. **Deploy empty first** and let it come up clean. A broken deployment that
    already holds the only copy of the data is a worse place to debug from.
@@ -227,20 +235,20 @@ class, so it still takes a classify job now and then; with `concurrency.enabled=
 entrypoint) that attempt returns in ten seconds whenever the worker holds a
 job. When the worker is idle, cron runs the classifier itself, and one node
 process reached 1 GB: the cron container has the same 2 GB ceiling as the
-worker for that reason. The entrypoint also pins Recognize's low-memory batch sizes (faces 50,
-imagenet 20, landmarks 20, movinet 5): a 200-face batch took node to 1.9 GB.
+worker for that reason. The entrypoint also pins Recognize's low-memory batch
+sizes (faces 50, imagenet 20, landmarks 20, movinet 5); a 200-face batch
+takes node to 1.9 GB.
 
 At one CPU the classifier managed an image every 35 s; the container has three
 (`--cpus=3`). Sequential by design, imagenet first, faces after.
 
-Nextcloud 34 used to kill a worker now and then with a duplicate snowflake
-`run_id` in `oc_job_runs` (`SQLSTATE[23505]`, several `occ` processes in one
-pod), and a job whose process died keeps `reserved_at` set, which blocks the
-classifiers for 12 hours. A timer used to clear stale reservations; it was
-removed on 2026-09-21 after a week without a single such crash, and because
-its threshold was close enough to a legitimate batch to free a job that was
-still being worked on. If classification stalls, look for `reserved_at` on
-`oc_jobs` rows whose worker is gone.
+A background job is reserved by writing `reserved_at` on its `oc_jobs` row,
+and a job whose process dies keeps that reservation, which makes the
+scheduler skip it for 12 hours. Nothing clears stale reservations
+automatically: a timer that did so could free a job a worker is still
+processing, and cron would then run it in parallel. If classification stalls,
+look for an `oc_jobs` row whose `reserved_at` is set and whose worker is
+gone, and clear that column.
 
 The worker installs the app, fetches the models and the node binary (about
 2.9 GB, once), and starts late on a fresh host for that reason. The other two

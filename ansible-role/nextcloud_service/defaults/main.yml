@@ -47,10 +47,7 @@ nextcloud_service_db_dump_retention_days: 30
 # Links in mails and cron output, and the push server the clients are told
 # about. notify_push:setup would set the endpoint after a self-test against
 # the public URL, which the test VM cannot pass.
-# Apps the deployment needs beyond what the container scripts install
-# themselves. admin_audit writes who did what to which file into the
-# Nextcloud log, which is where service-monitoring's file activity panels
-# read it from.
+# Apps beyond those the container entrypoints install; README, "Apps".
 nextcloud_service_apps:
   - admin_audit
 
