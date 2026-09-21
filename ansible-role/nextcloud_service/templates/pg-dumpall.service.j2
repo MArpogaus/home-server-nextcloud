@@ -3,4 +3,5 @@ Description=Pre-snapshot pg_dumpall for {{ service_user }}
 
 [Service]
 Type=oneshot
-ExecStart=systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect {{ service_home }}/bin/pre-snapshot-pg-dump.sh
+# The inhibitor keeps the auto-reboot away while the dump runs.
+ExecStart=systemd-inhibit --what=shutdown --who=pg-dumpall --why="database dump in progress" systemd-run --machine={{ service_user }}@ --user --wait --pipe --collect {{ service_home }}/bin/pre-snapshot-pg-dump.sh
