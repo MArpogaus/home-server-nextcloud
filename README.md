@@ -13,7 +13,7 @@ set up by `ansible-base`, whose README is the entry point for the project.
 | nextcloud-app | ghcr.io/marpogaus/nextcloud:34 (custom, fpm) | PHP-FPM |
 | nextcloud-web | nginx:mainline-alpine | Serves the app; `status.php` health check covers the whole stack |
 | nextcloud-cron | custom image | `cron.php` every 5 min |
-| nextcloud-preview | custom image | `preview:pre-generate` every 10 min, own memory ceiling |
+| nextcloud-preview | custom image | `preview:pre-generate` every 10 min |
 | nextcloud-recognize | custom image | Recognize classifier worker; installs the app and its models |
 | nextcloud-push | custom image | `notify_push` daemon |
 
@@ -26,8 +26,8 @@ because containers in a pod share a network namespace and bind IPv4 only.
 
 The pod runs with `LogDriver=passthrough`, so a program that opens its log by
 path gets `ENXIO` (`service-template/README.md`, "Conventions"). Four programs
-here do, and all of them log via syslog to `/dev/log`, mounted into their
-containers:
+here do, and all of them log via syslog to `/dev/log`, which is mounted into
+every container that runs `occ` or a web server:
 
 - nginx: `error_log`/`access_log syslog:server=unix:/dev/log,tag=nginx` in
   `quadlets/configs/nginx.conf.j2`, and `Exec=nginx -e stderr -g "daemon off;"`
@@ -43,8 +43,9 @@ containers:
   the image's `/cron.sh`, which writes to `/dev/stdout`.
 
 Look for them with `journalctl SYSLOG_IDENTIFIER=nginx`, `=php-fpm` and
-`=nextcloud`. The `occ` processes (cron, worker) write to their unit's stream
-directly.
+`=nextcloud`. An `occ` process prints its own progress to the unit's stream,
+but anything it logs goes to syslog like the rest, which is why the cron,
+preview, Recognize and push containers all mount the socket.
 
 ## Configuration
 
@@ -55,9 +56,9 @@ directly.
 | `nextcloud_service_php_max_children` | 8 |
 | `nextcloud_service_php_memory_limit` | 512M |
 
-Container ceilings are `Memory=` in the Quadlets: 2G for app, cron and
-Recognize, 768M for the database, 128M for redis, web and push. Recognize and
-the preview generator also carry a `CPUQuota=`.
+Container ceilings are `Memory=` in the Quadlets: 2G for app, cron, preview
+and Recognize, 768M for the database, 128M for redis, web and push. Recognize
+and the preview generator also carry a `CPUQuota=`.
 
 The ceilings add up to more than the host has. They are limits, not
 reservations, and the two heavy jobs are bursty. PHP's `max_children` times
@@ -97,8 +98,9 @@ only a value that differs, because `podman secret create --replace` on every
 run would restart the pod every run. A written secret does restart the pod.
 
 The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
-only. The role sets the domains with `occ` on every run, so a domain added
-later reaches `config.php`. "Trusted domain error" or HTTP 400 through the
+only. The role sets the domains with `occ` on every run, so a domain added or
+renamed later reaches `config.php`. Removing one does not: its index keeps the
+old value until you clear it with `occ config:system:delete`. "Trusted domain error" or HTTP 400 through the
 proxy therefore means the variable is wrong:
 
 ```bash
@@ -108,7 +110,9 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 ### Nextcloud version
 
 CI builds 34 and 35 and tags the highest as `latest`, so the switch is one
-variable. A major upgrade keeps two 2 GB images plus snapshots on disk; the
+variable. The major list is maintained by hand in two places, `versions` in
+`.github/workflows/build.yml` and `nextcloud_service_app_image` in the role's
+defaults; Dependabot cannot see a `FROM` whose tag is an `ARG`. A major upgrade keeps two 2 GB images plus snapshots on disk; the
 test VM has 40 GB for that reason.
 
 To upgrade a major version: take the dump and the snapshot first

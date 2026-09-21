@@ -154,13 +154,10 @@
   register: nextcloud_status
   until: '"\"installed\":true" in nextcloud_status.stdout'
   # A major upgrade runs occ upgrade inside the container before php-fpm
-  # listens, which takes minutes; the unit allows 1800 s, so wait for it.
-  retries: 120
+  # listens, which takes minutes; the unit allows 1800 s, so wait that long.
+  retries: 180
   delay: 10
   changed_when: false
-  failed_when:
-    - nextcloud_status.attempts | default(0) >= 30
-    - '"\"installed\":true" not in nextcloud_status.stdout'
 
 # Only after the first start. The image copies its config/*.config.php into
 # the mounted config directory only while that directory is empty, and one of
