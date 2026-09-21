@@ -8,16 +8,14 @@ TIMESTAMP="$(date +%F-%H%M%S)"
 DUMP_FILE="${DUMP_DIR}/dump-${TIMESTAMP}.sql"
 
 mkdir -p "$DUMP_DIR"
+rm -f "$DUMP_DIR"/*.tmp
 
+# Written under a name the snapshot and the restore ignore, renamed when
+# pg_dumpall has exited 0: a dump that died halfway must not look complete.
 # No password: the local Unix socket is trusted by the postgres image.
 podman exec -u postgres nextcloud-db \
-	pg_dumpall -U {{ nextcloud_service_db_user }} > "$DUMP_FILE"
-
-if [ ! -s "$DUMP_FILE" ]; then
-	echo "ERROR: dump is empty, removing ${DUMP_FILE}" >&2
-	rm -f "$DUMP_FILE"
-	exit 1
-fi
+	pg_dumpall -U {{ nextcloud_service_db_user }} > "${DUMP_FILE}.tmp"
+mv "${DUMP_FILE}.tmp" "$DUMP_FILE"
 
 echo "Dump saved: ${DUMP_FILE} ($(wc -c < "$DUMP_FILE") bytes)"
 

@@ -118,6 +118,23 @@
     group: "{{ service_user }}"
     mode: '0755'
 
+# Both timers are Persistent: after downtime they start together at boot.
+- name: Make room for the snapshot drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d
+    state: directory
+    owner: root
+    mode: '0755'
+
+- name: Snapshot the data only after the dump
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d/after-dump.conf
+    content: |
+      [Unit]
+      After=pg-dumpall.service
+    owner: root
+    mode: '0644'
+
 - name: Template the pg_dumpall and unstick-jobs services and timers
   ansible.builtin.template:
     src: "{{ item }}.j2"
@@ -171,3 +188,30 @@
   loop_control:
     index_var: idx
   changed_when: false  # occ cannot report whether the value already matched
+
+# Read first, set on difference: occ cannot report whether a value matched.
+- name: Read the settings the role owns
+  ansible.builtin.command: >-
+    podman exec -u www-data nextcloud-app php /var/www/html/occ
+    {{ item.cmd }}:get {{ item.key }}
+  become: true
+  become_user: "{{ service_user }}"
+  loop: "{{ nextcloud_service_settings }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: nextcloud_settings_current
+  changed_when: false
+  failed_when: false
+
+- name: Set the settings that differ
+  ansible.builtin.command: >-
+    podman exec -u www-data nextcloud-app php /var/www/html/occ
+    {{ item.item.cmd }}:set {{ item.item.key }} --value={{ item.item.value | quote }}
+    {{ '--type=integer' if item.item.value is number else '' }}
+  become: true
+  become_user: "{{ service_user }}"
+  loop: "{{ nextcloud_settings_current.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: item.stdout | trim != item.item.value | string
+  changed_when: true

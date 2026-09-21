@@ -68,7 +68,10 @@ deployment breaks.
 ### Secrets and domains
 
 DB credentials, admin user, trusted domains and PHP tuning come from
-`secrets/vars.yml` through `quadlets/configs/nextcloud.env.j2`.
+`secrets/vars.yml` through `quadlets/configs/nextcloud.env.j2`. The role sets
+`overwrite.cli.url`, `overwriteprotocol`, `maintenance_window_start` and the
+notify_push endpoint with `occ` on every run (`nextcloud_service_settings`),
+reading each value first so an unchanged deploy reports no change.
 `nextcloud_service_trusted_proxies` defaults to RFC1918 plus link-local
 because BunkerWeb's traffic arrives through the host.
 
@@ -98,8 +101,11 @@ A major upgrade keeps two 2 GB images plus snapshots on disk; the test VM has
 ## Backups
 
 `pg-dumpall.timer` (23:55) dumps the cluster into `data/db_dumps/`, so the
-nightly Btrfs snapshot (00:00, `ansible-base`) holds a consistent database.
-Dumps older than 30 days are pruned. The dump has no `DROP` statements and the
+nightly Btrfs snapshot (00:00, `ansible-base`) holds a consistent database;
+a drop-in orders the snapshot after the dump for the night both start late.
+The dump is written as `.tmp` and renamed on success, so a dump that died
+halfway is never snapshotted under a real name. Dumps older than 30 days are
+pruned. The dump has no `DROP` statements and the
 container has no `postgres` role: `nextcloud` is the superuser.
 
 `data/custom_apps` is its own Btrfs subvolume. A snapshot does not recurse into
@@ -223,7 +229,9 @@ app containers install and enable their apps the same way: preview and push.
   the directories with an explicit group.
 - `Requires=nextcloud-app.service` on `nextcloud-web` stops the web container
   when the app is restarted by hand and does not start it again. The role
-  restarts the pod, not single containers.
+  restarts the pod, not single containers. `nextcloud-app` reports healthy
+  (`Notify=healthy`) once php-fpm listens, and nginx starts after that; before
+  the gate every deploy was 40 nginx restarts.
 - The image repository name must be lowercase. podman reports the error at
   pull time only, which looks like a restart loop.
 
