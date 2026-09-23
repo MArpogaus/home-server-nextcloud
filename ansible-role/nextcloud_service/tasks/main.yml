@@ -70,6 +70,65 @@
       failed_when: false
       no_log: true
 
+    - name: Read whether the app and the database run
+      ansible.builtin.command:
+        cmd: podman container inspect --format {{ '{{.State.Running}}' }} nextcloud-app nextcloud-db
+      register: nextcloud_service_running
+      changed_when: false
+      failed_when: false
+
+    # An existing secret that differs from the vault is a rotation. The running
+    # instance takes the new value before the secret does, so a deploy that
+    # fails later applies it again on the next run.
+    - name: Name the rotated passwords
+      ansible.builtin.set_fact:
+        nextcloud_service_rotated: "{{ nextcloud_service_rotated | default([]) + [item.item.name] }}"
+      loop: "{{ nextcloud_service_secret_current.results }}"
+      when: item.rc == 0 and item.stdout != item.item.value
+      no_log: true
+
+    - name: Note whether the app and the database run
+      ansible.builtin.set_fact:
+        nextcloud_service_up: "{{ nextcloud_service_running.stdout_lines | default([]) == ['true', 'true'] }}"
+
+    - name: Refuse a rotation while the pod is down
+      ansible.builtin.fail:
+        msg: >-
+          A Nextcloud password changed while nextcloud-app or nextcloud-db is not
+          running. Start the pod (systemctl --user start nc-pod.service as the
+          service user) and deploy again.
+      when: nextcloud_service_rotated | default([]) | length > 0 and not nextcloud_service_up
+
+    - name: Apply a rotated admin password
+      ansible.builtin.command:
+        cmd: >-
+          podman exec -i -u www-data nextcloud-app sh -c 'read -r OC_PASS; export OC_PASS;
+          exec php /var/www/html/occ user:resetpassword --password-from-env {{ nextcloud_service_admin_user }}'
+        stdin: "{{ nextcloud_service_admin_password }}"
+      when: "'nextcloud_service_admin_password' in nextcloud_service_rotated | default([])"
+      changed_when: true
+      no_log: true
+
+    - name: Apply a rotated database password to the role
+      ansible.builtin.command:
+        cmd: >-
+          podman exec -i nextcloud-db psql -v ON_ERROR_STOP=1
+          -U {{ nextcloud_service_db_user }} -d postgres
+        stdin: >-
+          ALTER ROLE {{ nextcloud_service_db_user }}
+          PASSWORD '{{ nextcloud_service_db_password | replace("'", "''") }}';
+      when: "'nextcloud_service_db_password' in nextcloud_service_rotated | default([])"
+      changed_when: true
+      no_log: true
+
+    - name: Apply a rotated database password to config.php
+      ansible.builtin.command:
+        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
+        stdin: "{{ {'system': {'dbpassword': nextcloud_service_db_password}} | to_json }}"
+      when: "'nextcloud_service_db_password' in nextcloud_service_rotated | default([])"
+      changed_when: true
+      no_log: true
+
     - name: Write the podman secrets that changed
       ansible.builtin.command:
         cmd: podman secret create --replace {{ item.item.name }} -
@@ -135,11 +194,6 @@
   vars:
     quadlet_service_restart: "{{ nextcloud_service_secrets_written is changed }}"
 
-- name: Name the secrets that changed
-  ansible.builtin.set_fact:
-    nextcloud_service_secrets_changed: >-
-      {{ nextcloud_service_secrets_written.results | selectattr('changed') | map(attribute='item.item.name') | list }}
-
 - name: Configure Nextcloud as the service user
   become: true
   become_user: "{{ service_name }}"
@@ -163,37 +217,6 @@
       loop_control:
         index_var: idx
       changed_when: false
-
-    # The images read their password secrets on first start only.
-    - name: Apply a changed admin password
-      ansible.builtin.command:
-        cmd: >-
-          podman exec -i -u www-data nextcloud-app sh -c 'read -r OC_PASS; export OC_PASS;
-          exec php /var/www/html/occ user:resetpassword --password-from-env {{ nextcloud_service_admin_user }}'
-        stdin: "{{ nextcloud_service_admin_password }}"
-      when: "'nextcloud_service_admin_password' in nextcloud_service_secrets_changed"
-      changed_when: true
-      no_log: true
-
-    - name: Apply a changed database password to the role
-      ansible.builtin.command:
-        cmd: >-
-          podman exec -i nextcloud-db psql -v ON_ERROR_STOP=1
-          -U {{ nextcloud_service_db_user }} -d postgres
-        stdin: >-
-          ALTER ROLE {{ nextcloud_service_db_user }}
-          PASSWORD '{{ nextcloud_service_db_password | replace("'", "''") }}';
-      when: "'nextcloud_service_db_password' in nextcloud_service_secrets_changed"
-      changed_when: true
-      no_log: true
-
-    - name: Apply a changed database password to config.php
-      ansible.builtin.command:
-        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
-        stdin: "{{ {'system': {'dbpassword': nextcloud_service_db_password}} | to_json }}"
-      when: "'nextcloud_service_db_password' in nextcloud_service_secrets_changed"
-      changed_when: true
-      no_log: true
 
     - name: Read which apps are enabled
       ansible.builtin.command:
