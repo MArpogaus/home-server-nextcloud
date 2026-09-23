@@ -47,7 +47,7 @@ syslog. Four programs here open their log by path. All of them write to
 - php-fpm: `containers/context/configs/zz-pool.conf` sets `error_log = syslog`
   and `syslog.ident = nextcloud-php-fpm`. The fpm access log is off. nginx logs
   every request as JSON.
-- Nextcloud itself: `nextcloud_service_settings` sets `log_type syslog`, tag
+- Nextcloud itself: `nextcloud_service_config` sets `log_type syslog`, tag
   `nextcloud`, one JSON object per line, in `config.php`. If you use the
   `errorlog` type, the log goes through php-fpm's caught worker output. php-fpm
   discards that output when its own log is syslog, and the application log
@@ -103,10 +103,10 @@ The admin user is `nextcloud_service_admin_user` (default `admin`); its password
 and the database password come from the host's vars file. The trusted domains
 reach the image through `quadlets/configs/nextcloud.env.j2`. That template also
 holds the fixed php-fpm values that `zz-pool.conf` reads from the environment.
-The role sets `overwrite.cli.url`, `overwriteprotocol`,
-`maintenance_window_start` and the notify_push endpoint with `occ` on every run
-(`nextcloud_service_settings`). It reads each value first, so an unchanged
-deploy reports no change. `occ notify_push:self-test` proves the push path. The
+The role imports `nextcloud_service_config` with one `occ config:import` on every
+run: the trusted domains, `overwrite.cli.url`, `overwriteprotocol`,
+`maintenance_window_start`, the log settings and the notify_push endpoint. The
+import sets only these keys and leaves the rest of `config.php` alone. `occ notify_push:self-test` proves the push path. The
 test calls the public URL, which on the test VM resolves to the real host. Run
 the test on the host that it tests. There, four of its five checks pass. The
 fifth check compares client addresses on a request that went out and came back
@@ -128,10 +128,8 @@ running host is set by hand (`podman secret create --replace`, then
 `occ user:resetpassword`, `ALTER ROLE` and `dbpassword` in `config.php`).
 
 The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
-only. The role sets the domains with `occ` on every run, so a domain added or
-renamed later reaches `config.php`. A removed domain does not. Its index keeps
-the old value until you clear it with `occ config:system:delete`. "Trusted
-domain error" or HTTP 400 through the proxy therefore means that the variable is
+only. The role imports the domains on every run, so the list in `config.php`
+always matches the variable. "Trusted domain error" or HTTP 400 through the proxy therefore means that the variable is
 wrong:
 
 ```bash

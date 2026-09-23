@@ -135,15 +135,6 @@
       changed_when: false
 
     # The image applies NEXTCLOUD_TRUSTED_DOMAINS on first install only.
-    - name: Ensure the configured domains are trusted
-      ansible.builtin.command: >-
-        {{ nextcloud_service_occ }}
-        config:system:set trusted_domains {{ idx + 1 }} --value={{ item }}
-      loop: "{{ nextcloud_service_trusted_domains.split() }}"
-      loop_control:
-        index_var: idx
-      changed_when: false
-
     - name: Read which apps are enabled
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} app:list --output=json"
@@ -157,25 +148,8 @@
       when: item not in (nextcloud_service_app_list.stdout | from_json).enabled
       changed_when: true
 
-    # Read first, set on difference: occ cannot report whether a value matched.
-    - name: Read the settings the role owns
-      ansible.builtin.command: >-
-        {{ nextcloud_service_occ }}
-        {{ item.cmd }}:get {{ item.key }}
-      loop: "{{ nextcloud_service_settings }}"
-      loop_control:
-        label: "{{ item.key }}"
-      register: nextcloud_service_settings_current
+    - name: Apply the settings the role owns
+      ansible.builtin.command:
+        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
+        stdin: "{{ nextcloud_service_config | to_json }}"
       changed_when: false
-      failed_when: false
-
-    - name: Set the settings that differ
-      ansible.builtin.command: >-
-        {{ nextcloud_service_occ }}
-        {{ item.item.cmd }}:set {{ item.item.key }} --value={{ item.item.value | quote }}
-        {{ '--type=integer' if item.item.value is number else '' }}
-      loop: "{{ nextcloud_service_settings_current.results }}"
-      loop_control:
-        label: "{{ item.item.key }}"
-      when: item.stdout | trim != item.item.value | string
-      changed_when: true
