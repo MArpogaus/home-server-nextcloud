@@ -186,6 +186,11 @@ container scripts ask `occ app:getpath` rather than assuming a directory.
 
 ### Access log redaction
 
+nginx writes each request as one JSON object to syslog, and syslog cuts a
+line at 1024 bytes. A cut line is not valid JSON, so every field in
+`log_format` counts against that limit: the dashboards and the 5xx rule parse
+the line with `| json`.
+
 Several paths carry a live credential in the URI. `/s/<token>` opens a public
 share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
 share page fetches thumbnails and files under its own token. Loki keeps 30

@@ -15,7 +15,7 @@ http {
         text/javascript mjs;
     }
 
-    # Few fields: syslog truncates at 1024 bytes. README.md, "Access log redaction".
+    # README.md, "Access log redaction", limits the fields.
     log_format json_analytics escape=json '{'
         '"remote_addr": "$remote_addr", '
         '"request_method": "$request_method", '
