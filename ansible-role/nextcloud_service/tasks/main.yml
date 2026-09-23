@@ -1,0 +1,210 @@
+---
+- name: Assert the Nextcloud passwords are set
+  ansible.builtin.assert:
+    that:
+      - nextcloud_service_db_password | length > 0
+      - nextcloud_service_admin_password | length > 0
+    fail_msg: >-
+      Set nextcloud_service_db_password and nextcloud_service_admin_password in
+      secrets/vars.yml. Nextcloud installs with empty passwords without complaint.
+    quiet: true
+
+# An existing data or config dir belongs to a subuid Ansible cannot write through.
+- name: Check which service directories exist
+  ansible.builtin.stat:
+    path: "{{ service_home }}/{{ item }}"
+  loop:
+    - data/db_data
+    - data/data
+    - data/config
+    - bin
+  register: nextcloud_service_dirs
+
+- name: Create the missing service directories
+  ansible.builtin.file:
+    path: "{{ service_home }}/{{ item.item }}"
+    state: directory
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: '0755'
+  loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Create custom_apps as a nested Btrfs subvolume
+  ansible.builtin.shell:
+    cmd: >-
+      btrfs subvolume create {{ service_home }}/data/custom_apps &&
+      chown {{ service_user }}:{{ service_user }} {{ service_home }}/data/custom_apps
+    creates: "{{ service_home }}/data/custom_apps"
+
+- name: Keep custom_apps traversable
+  ansible.builtin.file:
+    path: "{{ service_home }}/data/custom_apps"
+    mode: '0755'
+
+- name: Prepare the directories and secrets as the service user
+  become: true
+  become_user: "{{ service_user }}"
+  block:
+    - name: Own the Nextcloud data and config dirs as the container www-data user
+      ansible.builtin.command:
+        cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+      loop:
+        - data
+        - config
+        - custom_apps
+      changed_when: false
+
+    # --replace restarts the pod, so write only a secret that differs.
+    - name: Read the current podman secrets
+      ansible.builtin.command:
+        cmd: >-
+          podman secret inspect --showsecret --format {{ '{{.SecretData}}' }}
+          {{ item.name }}
+      loop: "{{ nextcloud_service_secrets }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: nextcloud_service_secret_current
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Write the podman secrets that changed
+      ansible.builtin.command:
+        cmd: podman secret create --replace {{ item.item.name }} -
+        stdin: "{{ item.item.value }}"
+        stdin_add_newline: false
+      loop: "{{ nextcloud_service_secret_current.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.stdout | default('') != item.item.value
+      changed_when: true
+      no_log: true
+      register: nextcloud_service_secrets_written
+
+- name: Deploy pre-snapshot pg_dumpall script
+  ansible.builtin.template:
+    src: pre-snapshot-pg-dump.sh.j2
+    dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
+    owner: "{{ service_user }}"
+    group: "{{ service_user }}"
+    mode: '0755'
+
+- name: Make room for the snapshot drop-in
+  ansible.builtin.file:
+    path: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d
+    state: directory
+    owner: root
+    mode: '0755'
+
+- name: Snapshot the data only after the dump
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d/after-dump.conf
+    content: |
+      [Unit]
+      Wants=pg-dumpall.service
+      After=pg-dumpall.service
+    owner: root
+    mode: '0644'
+  notify: Reload systemd
+
+- name: Template the pg_dumpall service
+  ansible.builtin.template:
+    src: pg-dumpall.service.j2
+    dest: /etc/systemd/system/pg-dumpall.service
+    owner: root
+    mode: '0644'
+  notify: Reload systemd
+
+# The deploy time stands in for the first dump, so a dump that never succeeds
+# alerts 30 h after the deploy.
+- name: Seed the dump freshness metric
+  ansible.builtin.copy:
+    dest: /var/lib/node-textfile/dump-{{ service_name }}.prom
+    content: |
+      dump_last_success_timestamp_seconds{service="{{ service_name }}"} {{ ansible_facts.date_time.epoch }}
+    owner: root
+    mode: '0644'
+    setype: container_ro_file_t
+    force: false
+
+- name: Deploy the Quadlets
+  ansible.builtin.import_role:
+    name: quadlet_service
+  vars:
+    quadlet_service_restart: "{{ nextcloud_service_secrets_written is changed }}"
+
+- name: Configure Nextcloud as the service user
+  become: true
+  become_user: "{{ service_user }}"
+  block:
+    - name: Wait for Nextcloud to finish installing
+      ansible.builtin.command: >-
+        {{ nextcloud_service_occ }} status --output=json
+      register: nextcloud_service_status
+      until: '"\"installed\":true" in nextcloud_service_status.stdout'
+      # As long as the app unit's TimeoutStartSec, which a major upgrade needs.
+      retries: 180
+      delay: 10
+      changed_when: false
+
+    # The image applies NEXTCLOUD_TRUSTED_DOMAINS on first install only.
+    - name: Ensure the configured domains are trusted
+      ansible.builtin.command: >-
+        {{ nextcloud_service_occ }}
+        config:system:set trusted_domains {{ idx + 1 }} --value={{ item | trim }}
+      loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
+      loop_control:
+        index_var: idx
+      changed_when: false
+
+    - name: Read which apps are enabled
+      ansible.builtin.command:
+        cmd: "{{ nextcloud_service_occ }} app:list --output=json"
+      register: nextcloud_service_app_list
+      changed_when: false
+
+    - name: Enable the apps the deployment needs
+      ansible.builtin.command:
+        cmd: "{{ nextcloud_service_occ }} app:enable {{ item }}"
+      loop: "{{ nextcloud_service_apps }}"
+      when: item not in (nextcloud_service_app_list.stdout | from_json).enabled
+      changed_when: true
+
+    # Read first, set on difference: occ cannot report whether a value matched.
+    - name: Read the settings the role owns
+      ansible.builtin.command: >-
+        {{ nextcloud_service_occ }}
+        {{ item.cmd }}:get {{ item.key }}
+      loop: "{{ nextcloud_service_settings }}"
+      loop_control:
+        label: "{{ item.key }}"
+      register: nextcloud_service_settings_current
+      changed_when: false
+      failed_when: false
+
+    - name: Set the settings that differ
+      ansible.builtin.command: >-
+        {{ nextcloud_service_occ }}
+        {{ item.item.cmd }}:set {{ item.item.key }} --value={{ item.item.value | quote }}
+        {{ '--type=integer' if item.item.value is number else '' }}
+      loop: "{{ nextcloud_service_settings_current.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+      when: item.stdout | trim != item.item.value | string
+      changed_when: true
+
+- name: Read the owner of the config directory
+  ansible.builtin.stat:
+    path: "{{ service_home }}/data/config"
+  register: nextcloud_service_config_dir
+
+# After the first start: README.md, "Logging and app paths".
+- name: Route the Nextcloud log to syslog
+  ansible.builtin.copy:
+    src: log.config.php
+    dest: "{{ service_home }}/data/config/log.config.php"
+    owner: "{{ nextcloud_service_config_dir.stat.uid }}"
+    group: "{{ nextcloud_service_config_dir.stat.gid }}"
+    mode: '0644'

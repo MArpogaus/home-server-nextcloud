@@ -1,0 +1,14 @@
+[Container]
+Image={{ nextcloud_service_db_image }}
+ContainerName=nextcloud-db
+EnvironmentFile=./configs/db.env
+Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
+# the entrypoint fixes the data dir, then gosu postgres.
+AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
+Memory=768M
+Pod=nc.pod
+HealthCmd=pg_isready -U {{ nextcloud_service_db_user }}
+HealthInterval=30s
+HealthStartPeriod=60s
+HealthOnFailure=kill

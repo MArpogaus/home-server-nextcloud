@@ -1,0 +1,11 @@
+[Unit]
+Description=Pre-snapshot pg_dumpall for {{ service_user }}
+
+[Service]
+Type=oneshot
+# pg_dumpall waits forever on a lock, and the snapshot and the reboot wait on it.
+TimeoutStartSec=1h
+# The dump runs in the user manager, so ExecStopPost reaps it after a timeout.
+ExecStart=systemd-inhibit --what=shutdown --who=pg-dumpall --why="database dump in progress" systemd-run --machine={{ service_user }}@ --user --unit=pg-dumpall-run --wait --pipe --collect {{ service_home }}/bin/pre-snapshot-pg-dump.sh
+ExecStartPost=/usr/bin/bash -c "echo 'dump_last_success_timestamp_seconds{service=\"{{ service_name }}\"}' $$(date +%%s) > /var/lib/node-textfile/dump-{{ service_name }}.tmp && mv /var/lib/node-textfile/dump-{{ service_name }}.tmp /var/lib/node-textfile/dump-{{ service_name }}.prom"
+ExecStopPost=-/usr/bin/systemctl --machine={{ service_user }}@ --user stop pg-dumpall-run.service

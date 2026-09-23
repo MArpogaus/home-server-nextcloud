@@ -1,0 +1,1816 @@
+{
+  "uid": "nextcloud",
+  "title": "Nextcloud",
+  "tags": [
+    "home-server"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "enable": true,
+        "iconColor": "red",
+        "name": "Boots",
+        "expr": "{job=\"systemd-journal\", unit=\"init.scope\"} |= \"Startup finished in\"",
+        "titleFormat": "Boot",
+        "textFormat": "Startup finished"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Now",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 1
+    },
+    {
+      "title": "Requests/min",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" [1h])) / 60 or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "fixed"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Requests that reached Nextcloud's nginx in the last hour, health checks excluded.",
+      "id": 2
+    },
+    {
+      "title": "p95",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "quantile_over_time(0.95, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [1h]) by (job)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "noValue": "no requests",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "95 % of requests in the last hour were faster than this. Sync clients poll cheaply; the web UI and previews are the slow part.",
+      "id": 3
+    },
+    {
+      "title": "5xx (1h)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status =~ \"5..\" [1h])) or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Errors nginx answered, mostly php-fpm timeouts (504) or a full worker pool (502).",
+      "id": 4
+    },
+    {
+      "title": "Bad logins",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" [24h])) or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Wrong password or unknown user. NextcloudBruteForce alerts on more than 10 from one address in 15 minutes.",
+      "id": 5
+    },
+    {
+      "title": "App warnings",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({syslog_identifier=\"nextcloud\"} | json level | level >= 2 [24h])) or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Nextcloud log level 2 warning, 3 error, 4 fatal. The table below splits them by app.",
+      "id": 6
+    },
+    {
+      "title": "FPM maxed",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({syslog_identifier=\"php-fpm\"} |= \"reached pm.max_children\" [24h])) or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Every hit means requests queued. Raise nextcloud_service_php_max_children if this is not zero at quiet times.",
+      "id": 7
+    },
+    {
+      "title": "Cron (30m)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({syslog_identifier=\"crond\"} |= \"cmd php -f /var/www/html/cron.php\" [30m])) or vector(0)",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "Background jobs start from cron.php every 5 minutes. NextcloudCronStale alerts after 30 minutes without a run.",
+      "id": 26
+    },
+    {
+      "title": "Fatal (24h)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 21,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "(sum(count_over_time({service=\"nextcloud\", user_unit=\"nextcloud-db.service\"} |= \"PANIC\" [24h])) or vector(0)) + (sum(count_over_time({syslog_identifier=\"nextcloud\"} | json level | level >= 4 [24h])) or vector(0))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        }
+      },
+      "description": "PostgreSQL PANIC lines plus Nextcloud fatal log entries. NextcloudDatabasePanic and NextcloudFatal alert on each.",
+      "id": 27
+    },
+    {
+      "type": "row",
+      "title": "Trends",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 8
+    },
+    {
+      "title": "Requests by class",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (class) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format class=\"{{ .status | substr 0 1 }}xx\" [$__auto]))",
+          "legendFormat": "{{class}}",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal"
+            },
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "2xx ok, 3xx redirects and 304 not-modified, 4xx includes 401 from clients renewing their session, 5xx errors. Counted per interval.",
+      "id": 9
+    },
+    {
+      "title": "Response time",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "label_replace(quantile_over_time(0.5, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
+          "legendFormat": "{{series}}",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        },
+        {
+          "expr": "label_replace(quantile_over_time(0.95, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
+          "legendFormat": "{{series}}",
+          "queryType": "range",
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        },
+        {
+          "expr": "label_replace(max_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
+          "legendFormat": "{{series}}",
+          "queryType": "range",
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 12,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "max \u2013 slowest request"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two.",
+      "id": 10
+    },
+    {
+      "title": "Clients",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum by (client) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json request_uri, http_user_agent | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
+          "legendFormat": "{{client}}",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal"
+            },
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Requests per interval by user agent family. The desktop client polls every 30 s, so it dominates when nobody is active.",
+      "id": 11
+    },
+    {
+      "title": "Bytes sent",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "label_replace(sum(sum_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap bytes_sent [$__auto])), \"series\", \"sent to clients\", \"\", \"\")",
+          "legendFormat": "{{series}}",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal"
+            },
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Payload nginx sent, from the access log, totalled per bar like the other two count panels in this row. Downloads and photo previews make the peaks. The legend column is the total over the selected range.",
+      "id": 12
+    },
+    {
+      "type": "row",
+      "title": "Details",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 13
+    },
+    {
+      "title": "Top paths",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (path) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format path=\"{{ regexReplaceAll \\\"^(/[^/?]*(/[^/?]*)?).*\\\" .request_uri \\\"${1}\\\" }}\" [$__range])))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "path"
+            },
+            "properties": [
+              {
+                "id": "custom",
+                "value": {
+                  "width": 260
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "requests",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "First two path segments. /remote.php/dav is sync and CalDAV, /ocs is the client API, /apps/... the web UI.",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "requests",
+              "Value #A": "requests"
+            }
+          }
+        }
+      ],
+      "id": 14
+    },
+    {
+      "title": "Top client addresses",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 23,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (addr) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format addr=\"{{ if .http_x_real_ip }}{{ .http_x_real_ip }}{{ else }}{{ .remote_addr }}{{ end }}\" [$__range])))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "addr"
+            },
+            "properties": [
+              {
+                "id": "custom",
+                "value": {
+                  "width": 260
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "requests",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "Client address from X-Real-IP, which BunkerWeb sets; local requests show remote_addr.",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "requests",
+              "Value #A": "requests"
+            }
+          }
+        }
+      ],
+      "id": 15
+    },
+    {
+      "title": "App log by level",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "sum by (level, app) (count_over_time({syslog_identifier=\"nextcloud\"} | json level, app | level >= 2 [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "level"
+            },
+            "properties": [
+              {
+                "id": "custom",
+                "value": {
+                  "cellOptions": {
+                    "type": "color-text"
+                  },
+                  "width": 90
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "warning",
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "3": {
+                        "text": "error",
+                        "color": "red",
+                        "index": 1
+                      },
+                      "4": {
+                        "text": "fatal",
+                        "color": "dark-red",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "lines",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "Warnings and errors per Nextcloud app over the dashboard range. The logs panel below has the messages.",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "lines",
+              "Value #A": "lines"
+            }
+          }
+        }
+      ],
+      "id": 16
+    },
+    {
+      "type": "row",
+      "title": "Audit",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 17
+    },
+    {
+      "title": "What happened to files",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "sum by (action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__auto]))",
+          "legendFormat": "{{action}}",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal"
+            },
+            "drawStyle": "bars"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Every action the audit app recorded, by kind: File written, File deleted, File renamed, Login successful and so on. Needs nextcloud_service_apps to include admin_audit.",
+      "id": 18
+    },
+    {
+      "title": "Busiest users",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 33,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (user, action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__range])))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "actions",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "Who did how much of what over the dashboard range. `--` is a background job or the command line, not a person.",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "actions",
+              "Value #A": "actions"
+            }
+          }
+        }
+      ],
+      "id": 19
+    },
+    {
+      "title": "File activity",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "expr": "{syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` | action !~ \"(Preview|file) accessed\" | line_format \"{{.user}} {{.message}}\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false
+      },
+      "description": "Writes, deletes, renames and shares with the user that caused them. Reads are left out: preview generation and sync clients read constantly.",
+      "id": 20
+    },
+    {
+      "type": "row",
+      "title": "Access",
+      "id": 28,
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "title": "Successful logins",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "sum by (user, remoteAddr) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        },
+        {
+          "expr": "max by (user, remoteAddr) (max_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" | label_format ts=`{{ __timestamp__ | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])) * 1000",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "last seen"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "last seen",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "Every authenticated request logs in, so a syncing client counts once per request. A known user from an unknown address is the line to read.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "remoteAddr": "address",
+              "Value #A": "logins",
+              "Value #B": "last seen"
+            }
+          }
+        }
+      ],
+      "id": 29
+    },
+    {
+      "title": "Public links",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 53,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "sum by (owner, file, action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, url | app=\"admin_audit\" | message=~\"(The shared file with the token|The file .* has been (shared via link|unshared)).*\" | label_format owner=`{{ if hasPrefix \"The shared\" .message }}{{ regexReplaceAll \".* by \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ else }}{{ .user }}{{ end }}`, file=`{{ if hasPrefix \"The shared\" .message }}public link{{ else }}{{ regexReplaceAll \"^The file \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ end }}`, action=`{{ if contains \"shared via link\" .message }}created{{ else if contains \"unshared\" .message }}removed{{ else if hasSuffix \"/download\" .url }}downloaded{{ else }}opened{{ end }}` [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "events",
+            "desc": true
+          }
+        ],
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "description": "Links created and removed, by file, and public links opened or downloaded, by owner. The log names an opened link by its token, which the dashboard does not show.",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "events",
+              "Value #A": "events"
+            }
+          }
+        }
+      ],
+      "id": 30
+    },
+    {
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 62,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 21
+    },
+    {
+      "title": "Failed logins",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "{syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" | regexp \"Login failed: '(?P<user>[^']+)' \\\\(Remote IP: '(?P<ip>[^']+)'\\\\)\" | line_format \"{{.user}} from {{.ip}}\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false
+      },
+      "description": "User name and source address of every failed login.",
+      "id": 22
+    },
+    {
+      "title": "App warnings and errors",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 63,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "{syslog_identifier=\"nextcloud\"} | json level, app, message | level >= 2 | label_format level=`{{ if eq .level \"2\" }}warning{{ else if eq .level \"3\" }}error{{ else if eq .level \"4\" }}critical{{ else }}info{{ end }}` | line_format \"[{{.app}}] {{.message}}\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false
+      },
+      "description": "Nextcloud's own log at level warning and above, one line per entry. Expand a line for the full JSON (user, URL, exception).",
+      "id": 23
+    },
+    {
+      "title": "Background containers (cron, preview, recognize, push)",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "{user_unit=~\"nextcloud-(cron|preview|recognize|push).service\"} != \"Scanning folder\" != \"Waiting for new jobs\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false
+      },
+      "description": "Output of the four helper containers. Recognize logs each classified batch; the preview generator each folder it finished.",
+      "id": 24
+    },
+    {
+      "title": "Database and cache",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 72,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "{user_unit=~\"nextcloud-(db|redis)\\\\.service\"} |~ \"(?i)error|fatal|warning|panic\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false
+      },
+      "description": "PostgreSQL and redis, warnings and up. Empty is normal.",
+      "id": 25
+    }
+  ]
+}

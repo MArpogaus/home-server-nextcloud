@@ -1,0 +1,29 @@
+[Unit]
+Requires=nextcloud-db.service nextcloud-redis.service
+After=nextcloud-db.service nextcloud-redis.service
+
+[Container]
+Image={{ nextcloud_service_app_image }}
+ContainerName=nextcloud-app
+EnvironmentFile=./configs/nextcloud.env
+Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+Secret=nextcloud_service_admin_password,type=mount,target=/run/secrets/nextcloud_service_admin_password
+# rsync/chown of the tree, then php-fpm forks www-data workers and signals them.
+AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID KILL
+Memory=2G
+# exec: Nextcloud runs helpers from /tmp. size: the tmpfs counts against Memory=.
+Tmpfs=/tmp:exec,size=512M
+Volume=nc-app-html:/var/www/html:z
+Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
+Volume={{ service_home }}/data/data:/var/www/html/data:z
+Volume={{ service_home }}/data/config:/var/www/html/config:z
+Volume=/dev/log:/dev/log
+Pod=nc.pod
+HealthCmd=bash -c "exec 3<>/dev/tcp/127.0.0.1/9000"
+HealthInterval=10s
+HealthStartPeriod=60s
+Notify=healthy
+
+[Service]
+# A major upgrade runs occ upgrade before php-fpm listens.
+TimeoutStartSec=1800

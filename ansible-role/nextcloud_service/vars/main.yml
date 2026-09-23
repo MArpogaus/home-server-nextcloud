@@ -1,0 +1,8 @@
+---
+quadlet_service_pod: nc
+
+nextcloud_service_secrets:
+  - {name: nextcloud_service_db_password, value: "{{ nextcloud_service_db_password }}"}
+  - {name: nextcloud_service_admin_password, value: "{{ nextcloud_service_admin_password }}"}
+
+nextcloud_service_occ: podman exec -u www-data nextcloud-app php /var/www/html/occ

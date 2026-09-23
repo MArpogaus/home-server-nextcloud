@@ -1,0 +1,22 @@
+[Unit]
+Requires=nextcloud-app.service
+After=nextcloud-app.service
+
+[Container]
+Image={{ nextcloud_service_nginx_image }}
+ContainerName=nextcloud-web
+# nginx binds :80 and forks nginx workers.
+AddCapability=CHOWN NET_BIND_SERVICE SETGID SETUID
+Memory=128M
+Volume=nc-app-html:/var/www/html:ro,z
+Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:ro,z
+Volume={{ service_home }}/data/data:/var/www/html/data:ro,z
+Volume={{ service_home }}/data/config:/var/www/html/config:ro,z
+Volume=./configs/nginx.conf:/etc/nginx/nginx.conf:ro,z
+Volume=/dev/log:/dev/log
+Exec=nginx -e stderr -g "daemon off;"
+Pod=nc.pod
+HealthCmd=wget -qO /dev/null http://127.0.0.1/status.php
+HealthInterval=60s
+HealthStartPeriod=30s
+HealthOnFailure=kill
