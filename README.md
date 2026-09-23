@@ -28,10 +28,10 @@ Every `podman` line below runs as the `nextcloud` user:
 
 The four job containers run the custom app image.
 
-The pod publishes `8080` on loopback only. BunkerWeb runs as a different
-rootless user with its own container network. It reaches the host through
-pasta's host-loopback mapping. Inside the pod everything uses `127.0.0.1`,
-because containers in a pod share a network namespace and bind IPv4 only.
+The pod publishes `8080` on loopback only, where BunkerWeb reaches it
+(`home-server-bunker/README.md`, "How the proxy reaches the other pods"). Inside
+the pod everything uses `127.0.0.1` (`home-server-template/CONTRIBUTING.md`,
+"Rules a service follows").
 
 ### Logging
 
