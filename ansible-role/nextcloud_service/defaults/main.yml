@@ -29,4 +29,10 @@ nextcloud_service_settings:
   - {cmd: config:system, key: overwrite.cli.url, value: "{{ nextcloud_service_url }}"}
   - {cmd: config:system, key: overwriteprotocol, value: https}
   - {cmd: config:system, key: maintenance_window_start, value: 1}
+  - {cmd: config:system, key: log_type, value: syslog}
+  - {cmd: config:system, key: log_type_audit, value: syslog}
+  - {cmd: config:system, key: syslog_tag, value: nextcloud}
+  - {cmd: config:system, key: syslog_tag_audit, value: nextcloud}
+  - {cmd: config:system, key: loglevel, value: 1}
+  - {cmd: config:system, key: "log.condition apps 0", value: admin_audit}
   - {cmd: "config:app", key: "notify_push base_endpoint", value: "{{ nextcloud_service_url }}/push"}

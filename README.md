@@ -47,8 +47,8 @@ syslog. Four programs here open their log by path. All of them write to
 - php-fpm: `containers/context/configs/zz-pool.conf` sets `error_log = syslog`
   and `syslog.ident = nextcloud-php-fpm`. The fpm access log is off. nginx logs
   every request as JSON.
-- Nextcloud itself: the role sets `log_type syslog`, tag `nextcloud`, one JSON
-  object per line, in `data/config/log.config.php`. If you use the `errorlog`
+- Nextcloud itself: `nextcloud_service_settings` sets `log_type syslog`, tag
+  `nextcloud`, one JSON object per line, in `config.php`. If you use the `errorlog`
   type, the log goes through php-fpm's caught worker output. php-fpm discards
   that output when its own log is syslog, and the application log vanishes
   silently.

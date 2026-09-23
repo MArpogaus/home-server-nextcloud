@@ -194,17 +194,3 @@
         label: "{{ item.item.key }}"
       when: item.stdout | trim != item.item.value | string
       changed_when: true
-
-- name: Read the owner of the config directory
-  ansible.builtin.stat:
-    path: "{{ service_home }}/data/config"
-  register: nextcloud_service_config_dir
-
-# After the first start: README.md, "Logging and app paths".
-- name: Route the Nextcloud log to syslog
-  ansible.builtin.copy:
-    src: log.config.php
-    dest: "{{ service_home }}/data/config/log.config.php"
-    owner: "{{ nextcloud_service_config_dir.stat.uid }}"
-    group: "{{ nextcloud_service_config_dir.stat.gid }}"
-    mode: '0644'
