@@ -253,7 +253,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" [24h])) or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -315,7 +315,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({syslog_identifier=\"nextcloud\"} | json level | level >= 2 [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json level | level >= 2 [24h])) or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -373,7 +373,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({syslog_identifier=\"nextcloud-php-fpm\"} |= \"reached pm.max_children\" [24h])) or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud-php-fpm\"} |= \"reached pm.max_children\" [24h])) or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -489,7 +489,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(count_over_time({service=\"nextcloud\", user_unit=\"nextcloud-db.service\"} |= \"PANIC\" [24h])) or vector(0)) + (sum(count_over_time({syslog_identifier=\"nextcloud\"} | json level | level >= 4 [24h])) or vector(0))",
+          "expr": "(sum(count_over_time({service=\"nextcloud\", user_unit=\"nextcloud-db.service\"} |= \"PANIC\" [24h])) or vector(0)) + (sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json level | level >= 4 [24h])) or vector(0))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1117,7 +1117,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (level, app) (count_over_time({syslog_identifier=\"nextcloud\"} | json level, app | level >= 2 [$__range]))",
+          "expr": "sum by (level, app) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json level, app | level >= 2 [$__range]))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1243,7 +1243,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__auto]))",
+          "expr": "sum by (action) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__auto]))",
           "legendFormat": "{{action}}",
           "queryType": "range",
           "refId": "A",
@@ -1309,7 +1309,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (user, action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__range])))",
+          "expr": "topk(10, sum by (user, action) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` [$__range])))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1379,7 +1379,7 @@
       },
       "targets": [
         {
-          "expr": "{syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` | action !~ \"(Preview|file) accessed\" | line_format \"{{.user}} {{.message}}\"",
+          "expr": "{service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user | app=\"admin_audit\" | message!~\"(Cache entry|Interaction|Login ).*\" | label_format action=`{{ if hasPrefix \"File with id\" .message }}file {{ regexReplaceAll \"^File with id \\\"[0-9]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else if contains \"shared via link\" .message }}link created{{ else if contains \"has been unshared\" .message }}link removed{{ else if hasPrefix \"The shared file\" .message }}link opened{{ else if hasPrefix \"App \" .message }}app {{ regexReplaceAll \"^App \\\"[^\\\"]+\\\" ([a-z]+).*\" .message \"${1}\" }}{{ else }}{{ regexReplaceAll \"^([A-Za-z]+ [a-z]+).*$\" .message \"${1}\" }}{{ end }}` | action !~ \"(Preview|file) accessed\" | line_format \"{{.user}} {{.message}}\"",
           "legendFormat": "",
           "queryType": "range",
           "refId": "A",
@@ -1442,7 +1442,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (user, remoteAddr) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" [$__range]))",
+          "expr": "sum by (user, remoteAddr) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" [$__range]))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1452,7 +1452,7 @@
           }
         },
         {
-          "expr": "max by (user, remoteAddr) (max_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" | label_format ts=`{{ __timestamp__ | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])) * 1000",
+          "expr": "max by (user, remoteAddr) (max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user, remoteAddr | app=\"admin_audit\" | message=~\"Login successful.*\" | label_format ts=`{{ __timestamp__ | unixEpoch }}` | unwrap ts | __error__=\"\" [$__range])) * 1000",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "B",
@@ -1540,7 +1540,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (owner, file, action) (count_over_time({syslog_identifier=\"nextcloud\"} | json app, message, user, url | app=\"admin_audit\" | message=~\"(The shared file with the token|The file .* has been (shared via link|unshared)).*\" | label_format owner=`{{ if hasPrefix \"The shared\" .message }}{{ regexReplaceAll \".* by \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ else }}{{ .user }}{{ end }}`, file=`{{ if hasPrefix \"The shared\" .message }}public link{{ else }}{{ regexReplaceAll \"^The file \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ end }}`, action=`{{ if contains \"shared via link\" .message }}created{{ else if contains \"unshared\" .message }}removed{{ else if hasSuffix \"/download\" .url }}downloaded{{ else }}opened{{ end }}` [$__range]))",
+          "expr": "sum by (owner, file, action) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json app, message, user, url | app=\"admin_audit\" | message=~\"(The shared file with the token|The file .* has been (shared via link|unshared)).*\" | label_format owner=`{{ if hasPrefix \"The shared\" .message }}{{ regexReplaceAll \".* by \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ else }}{{ .user }}{{ end }}`, file=`{{ if hasPrefix \"The shared\" .message }}public link{{ else }}{{ regexReplaceAll \"^The file \\\"([^\\\"]+)\\\".*\" .message \"${1}\" }}{{ end }}`, action=`{{ if contains \"shared via link\" .message }}created{{ else if contains \"unshared\" .message }}removed{{ else if hasSuffix \"/download\" .url }}downloaded{{ else }}opened{{ end }}` [$__range]))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1627,7 +1627,7 @@
       },
       "targets": [
         {
-          "expr": "{syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" | regexp \"Login failed: '(?P<user>[^']+)' \\\\(Remote IP: '(?P<ip>[^']+)'\\\\)\" | line_format \"{{.user}} from {{.ip}}\"",
+          "expr": "{service=\"nextcloud\", syslog_identifier=\"nextcloud\"} |= \"Login failed: '\" | regexp \"Login failed: '(?P<user>[^']+)' \\\\(Remote IP: '(?P<ip>[^']+)'\\\\)\" | line_format \"{{.user}} from {{.ip}}\"",
           "legendFormat": "",
           "queryType": "range",
           "refId": "A",
@@ -1677,7 +1677,7 @@
       },
       "targets": [
         {
-          "expr": "{syslog_identifier=\"nextcloud\"} | json level, app, message | level >= 2 | label_format level=`{{ if eq .level \"2\" }}warning{{ else if eq .level \"3\" }}error{{ else if eq .level \"4\" }}critical{{ else }}info{{ end }}` | line_format \"[{{.app}}] {{.message}}\"",
+          "expr": "{service=\"nextcloud\", syslog_identifier=\"nextcloud\"} | json level, app, message | level >= 2 | label_format level=`{{ if eq .level \"2\" }}warning{{ else if eq .level \"3\" }}error{{ else if eq .level \"4\" }}critical{{ else }}info{{ end }}` | line_format \"[{{.app}}] {{.message}}\"",
           "legendFormat": "",
           "queryType": "range",
           "refId": "A",

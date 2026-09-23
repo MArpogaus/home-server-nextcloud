@@ -24,7 +24,7 @@ groups:
 
       - alert: NextcloudErrors
         expr: |
-          sum(count_over_time({syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 3 [1h])) > 20
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 3 [1h])) > 20
         labels:
           severity: warning
         annotations:
@@ -32,7 +32,7 @@ groups:
 
       - alert: NextcloudFatal
         expr: |
-          sum(count_over_time({syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 4 [15m])) > 0
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 4 [15m])) > 0
         labels:
           severity: critical
         annotations:
@@ -41,12 +41,12 @@ groups:
       - alert: Nextcloud5xx
         expr: |
           (
-            sum(count_over_time({syslog_identifier="nextcloud_nginx"} |~ `"status": "5\d\d"` [10m]))
+            sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |~ `"status": "5\d\d"` [10m]))
             /
-            sum(count_over_time({syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m]))
+            sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m]))
           ) > 0.05
           and
-          sum(count_over_time({syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m])) > 50
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m])) > 50
         for: 5m
         labels:
           severity: warning
@@ -57,7 +57,7 @@ groups:
         expr: |
           sum by (ip) (
             count_over_time(
-              {syslog_identifier="nextcloud"}
+              {service="nextcloud", syslog_identifier="nextcloud"}
                 |= "Login failed: '"
                 | regexp "Login failed: '[^']+' \\(Remote IP: '(?P<ip>[^']+)'\\)" [15m]
             )
