@@ -124,12 +124,8 @@ Database and admin credentials are podman secrets, not environment variables.
 They do not appear in `podman inspect` or `/proc/<pid>/environ`. Both images
 accept the `*_FILE` convention. The role writes a secret only when its value
 differs, because a written secret restarts the pod. The images read the secrets
-on their first start only, so the role applies a rotated value itself: the admin
-password with `occ user:resetpassword`, the database password with `ALTER ROLE`
-and `occ config:import` into `config.php`. Each value travels on stdin. The
-running instance takes the new value before the secret does, so a deploy that
-fails between the two applies it again on the next run. A rotation while
-`nextcloud-app` or `nextcloud-db` is down stops the deploy until the pod runs.
+on their first start only, so a new password on a running host is set by hand
+(`occ user:resetpassword`, `ALTER ROLE` and `dbpassword` in `config.php`).
 
 The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
 only. The role sets the domains with `occ` on every run, so a domain added or
