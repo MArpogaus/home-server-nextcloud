@@ -185,15 +185,32 @@ container scripts ask `occ app:getpath` rather than assuming a directory.
 
 Several paths carry a live credential in the URI. `/s/<token>` opens a public
 share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
-share page fetches thumbnails and files under its own token. The access log
-reaches Loki, which keeps 30 days, so a raw line hands every reader of Grafana
-a working link. The `$log_request_uri` map in `nginx.conf.j2` replaces the
-token of each such path before the line is written.
+share page fetches thumbnails and files under its own token. Loki keeps 30
+days, so a raw path hands every reader of Grafana a working link.
+`monitoring/alloy-redact.txt` lists one pattern per route, and
+`home-server-monitoring` replaces the token of every match with `<redacted>`
+before a line reaches Loki, for every producer, the proxy included. A second
+pattern redacts `token "…"`, the form in which the audit log names a public
+share.
+
+Rederive the route list from the deployed image after a major version and
+after an app is enabled:
+
+```bash
+grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
+  /var/www/html/{core,apps/*}/appinfo/routes.php
+```
 
 Two more fields can carry a token. A page served from a share sends that URL
 as the Referer of every request it makes. Public WebDAV sends the share token
 as the basic-auth username, which nginx puts in `$remote_user`. Neither field
 is logged at all.
+
+### Dropped lines
+
+Nextcloud's apps read config keys that their config lexicon does not declare,
+and Nextcloud logs one info line per key per request. The line reports nothing,
+so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
 
 ## Recognize
 

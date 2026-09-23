@@ -15,33 +15,11 @@ http {
         text/javascript mjs;
     }
 
-    # These paths carry a live credential, and the access log reaches Loki.
-    # README.md, "Access log redaction", says what the map covers. Each pattern
-    # stops at `?`, which drops the query string of that path with it.
-    map $request_uri $log_request_uri {
-        "~^(?<prefix>(/index\.php)?/s/)[^/?]+"                       "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/lostpassword/(reset/form|set)/)[^/?]+" "${prefix}<redacted>";
-        # The share page asks for one publicpreview per thumbnail and the file
-        # list uses public WebDAV. Both carry the same token as /s/.
-        "~^(?<prefix>(/index\.php)?/apps/files_sharing/publicpreview/)[^/?]+" "${prefix}<redacted>";
-        "~^(?<prefix>/public\.php/dav/[^/?]+/)[^/?]+"                "${prefix}<redacted>";
-        # The rest of the {token} routes of the apps this deployment enables.
-        # directEditing hands out edit access to a file with no session at all.
-        "~^(?<prefix>(/index\.php)?/apps/files/directEditing/)[^/?]+" "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/ocs/v[12]\.php/apps/files/api/v1/openlocaleditor/)[^/?]+" "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/apps/photos/public/)[^/?]+"      "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/apps/dav/invitation/(accept|decline|moreOptions)/)[^/?]+" "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/ocs/v[12]\.php/apps/activity/api/v2/remote/)[^/?]+" "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/apps/circles/async/)[^/?]+"      "${prefix}<redacted>";
-        "~^(?<prefix>(/index\.php)?/apps/provisioning_api/mailVerification/[^/?]+/)[^/?]+" "${prefix}<redacted>";
-        default                                                       $request_uri;
-    }
-
     # Few fields: syslog truncates at 1024 bytes. README.md, "Access log redaction".
     log_format json_analytics escape=json '{'
         '"remote_addr": "$remote_addr", '
         '"request_method": "$request_method", '
-        '"request_uri": "$log_request_uri", '
+        '"request_uri": "$request_uri", '
         '"status": "$status", '
         '"bytes_sent": "$bytes_sent", '
         '"request_time": "$request_time", '
