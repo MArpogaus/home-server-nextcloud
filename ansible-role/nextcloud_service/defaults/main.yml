@@ -10,7 +10,7 @@ nextcloud_service_db_name: nextcloud
 nextcloud_service_db_user: nextcloud
 nextcloud_service_admin_user: admin
 nextcloud_service_trusted_domains: "cloud.example.com"
-nextcloud_service_url: "https://{{ nextcloud_service_trusted_domains.split(',')[0] | trim }}"
+nextcloud_service_url: "https://{{ nextcloud_service_trusted_domains.split() | first }}"
 
 nextcloud_service_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
 

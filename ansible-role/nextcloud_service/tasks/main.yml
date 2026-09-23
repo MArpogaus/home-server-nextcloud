@@ -153,8 +153,8 @@
     - name: Ensure the configured domains are trusted
       ansible.builtin.command: >-
         {{ nextcloud_service_occ }}
-        config:system:set trusted_domains {{ idx + 1 }} --value={{ item | trim }}
-      loop: "{{ nextcloud_service_trusted_domains.split(',') }}"
+        config:system:set trusted_domains {{ idx + 1 }} --value={{ item }}
+      loop: "{{ nextcloud_service_trusted_domains.split() }}"
       loop_control:
         index_var: idx
       changed_when: false
