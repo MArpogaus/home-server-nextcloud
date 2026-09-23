@@ -329,7 +329,7 @@ snapshot when the upgrade is good, because retention covers dated names only:
 
 The role and the image release separately. An entrypoint script runs under
 `set -u`, so remove a key from `nextcloud.env.j2` only after CI publishes the
-image that no longer reads it.
+image that does not read it.
 
 ### Restoring this host's dump
 
