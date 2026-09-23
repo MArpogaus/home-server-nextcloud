@@ -41,3 +41,6 @@ short sentences, one meaning per word, and the condition before the command.
 - Ansible variables are `<role>_*`.
 - Renovate updates the container image tags in the role defaults, through the
   preset that `.github/renovate.json` extends.
+- This repository is checked out in `home-server/services/nextcloud`, where you work
+  on it. `home-server/CONTRIBUTING.md` says how a change reaches the pinned
+  version.
