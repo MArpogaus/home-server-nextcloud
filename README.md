@@ -48,10 +48,10 @@ syslog. Four programs here open their log by path. All of them write to
   and `syslog.ident = nextcloud-php-fpm`. The fpm access log is off. nginx logs
   every request as JSON.
 - Nextcloud itself: `nextcloud_service_settings` sets `log_type syslog`, tag
-  `nextcloud`, one JSON object per line, in `config.php`. If you use the `errorlog`
-  type, the log goes through php-fpm's caught worker output. php-fpm discards
-  that output when its own log is syslog, and the application log vanishes
-  silently.
+  `nextcloud`, one JSON object per line, in `config.php`. If you use the
+  `errorlog` type, the log goes through php-fpm's caught worker output. php-fpm
+  discards that output when its own log is syslog, and the application log
+  vanishes silently.
 - crond in the cron and preview containers: `busybox crond -f -l 0 -S` instead
   of the image's `/cron.sh`, which writes to `/dev/stdout`.
 
@@ -159,8 +159,8 @@ role. `nextcloud` is the superuser.
 
 On success the unit writes `dump_last_success_timestamp_seconds` to
 `/var/lib/node-textfile/dump-<service>.prom`. The role seeds that file with the
-deploy time, so a dump that never succeeds raises core's `JobStale` 30 hours
-after the deploy.
+deploy time, so a dump that never succeeds raises home-server's `JobStale` 30
+hours after the deploy.
 
 `data/custom_apps` is its own Btrfs subvolume. A snapshot does not recurse into
 a nested subvolume. App code and the Recognize models (gigabytes the app store
@@ -278,8 +278,8 @@ app containers install and enable their apps the same way: preview and push.
 ## Monitoring
 
 `monitoring/` holds the log rules and the dashboard that
-`home-server-monitoring` collects. Core's `JobStale` covers the dump metric. The
-label contract is in its README.
+`home-server-monitoring` collects. home-server's `JobStale` covers the dump
+metric. The label contract is in its README.
 
 The dashboard is JSON maintained by hand: edit it in Grafana, export it, delete
 its `links`, and commit it.
