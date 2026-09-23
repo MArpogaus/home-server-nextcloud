@@ -12,13 +12,13 @@ rm -f "$DUMP_DIR"/*.tmp
 
 # The snapshot timer is Persistent and can fire at boot, before the pod is up.
 for _ in $(seq 1 60); do
-	podman exec -u postgres nextcloud-db pg_isready -q -U {{ nextcloud_service_db_user }} && break
+	podman exec -u postgres nextcloud-db pg_isready -q -U nextcloud && break
 	sleep 5
 done
 
 # lock_timeout ends a lock wait inside the container, which the unit timeout cannot.
 podman exec -e PGOPTIONS='-c lock_timeout=900000' -u postgres nextcloud-db \
-	pg_dumpall -U {{ nextcloud_service_db_user }} > "${DUMP_FILE}.tmp"
+	pg_dumpall -U nextcloud > "${DUMP_FILE}.tmp"
 mv "${DUMP_FILE}.tmp" "$DUMP_FILE"
 
 echo "Dump saved: ${DUMP_FILE} ($(wc -c < "$DUMP_FILE") bytes)"
