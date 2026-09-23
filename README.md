@@ -283,8 +283,7 @@ The worker installs the app and fetches the models and the node binary (about
 `home-server-monitoring` collects. home-server's `JobStale` covers the dump
 metric. The label contract is in its README.
 
-The dashboard is JSON maintained by hand: edit it in Grafana, export it, delete
-its `links`, and commit it.
+The dashboard follows `home-server-monitoring/README.md`, "Dashboards".
 
 | Alert | Severity | Fires when |
 |---|---|---|
