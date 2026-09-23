@@ -187,9 +187,9 @@ An app lands in `custom_apps` only because `apps.config.php` puts it on
 **only while that directory is still empty**, on the very first container
 start. Anything that the role writes into `config/` before then costs the whole
 bootstrap. `apps_paths` stays unset, and every app installs into `apps/`. The
-image's `rsync --delete` then wipes `apps/` on the next version upgrade. For
-that reason the role writes the log drop-in after the install, not before. The
-container scripts ask `occ app:getpath` rather than assuming a directory.
+image's `rsync --delete` then wipes `apps/` on the next version upgrade. The
+role therefore writes nothing into `config/`; it sets every value with `occ`
+after the install. The container scripts ask `occ app:getpath` rather than assuming a directory.
 
 ### Access log redaction
 
