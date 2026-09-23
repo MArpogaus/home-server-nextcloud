@@ -440,6 +440,10 @@ Every container runs the image's own entrypoint. The app container's command
 is `php-fpm`, which makes the entrypoint install or upgrade
 Nextcloud. The other containers pass their script as the command. GitHub Actions
 builds and signs the image. The cosign policy on the host checks it.
+`cosign.pub` is the public half of the signing key: the build verifies each
+pushed image against it, and
+`cosign verify --key cosign.pub ghcr.io/marpogaus/nextcloud:<major>` checks one
+by hand.
 
 `.github/workflows/build.yml` publishes every major a host runs: the role
 default, and the major a host still pins until its upgrade. `main` publishes
