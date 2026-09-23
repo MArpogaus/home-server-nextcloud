@@ -56,7 +56,6 @@
         - custom_apps
       changed_when: false
 
-    # --replace restarts the pod, so write only a secret that differs.
     - name: Create the podman secrets
       ansible.builtin.command:
         cmd: podman secret create {{ item.name }} -

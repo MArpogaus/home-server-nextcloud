@@ -352,10 +352,9 @@ The dump rewinds the database to midnight while `data/data` stays current, so
 
 ## Role contract
 
-The contract is in `home-server-template/README.md`. Two points are specific
-here. `vars/main.yml` sets `quadlet_service_pod: nc`, because the pod file is
-`nc.pod`. A rewritten podman secret restarts the pod through
-`quadlet_service_restart`.
+The contract is in `home-server-template/README.md`. One point is specific
+here: `vars/main.yml` sets `quadlet_service_pod: nc`, because the pod file is
+`nc.pod`.
 
 ## Custom image
 
