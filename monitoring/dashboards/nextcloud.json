@@ -431,7 +431,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({syslog_identifier=\"crond\"} |= \"cmd php -f /var/www/html/cron.php\" [30m])) or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"crond\"} |= \"cmd php -f /var/www/html/cron.php\" [30m])) or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",

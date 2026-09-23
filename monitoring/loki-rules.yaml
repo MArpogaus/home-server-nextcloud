@@ -15,7 +15,7 @@ groups:
 
       - alert: NextcloudCronStale
         expr: |
-          absent_over_time({syslog_identifier="crond"} |= "cmd php -f /var/www/html/cron.php" [30m])
+          absent_over_time({service="nextcloud", syslog_identifier="crond"} |= "cmd php -f /var/www/html/cron.php" [30m])
         labels:
           severity: warning
         annotations:
