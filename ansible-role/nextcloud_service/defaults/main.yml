@@ -5,7 +5,9 @@ nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
 nextcloud_service_redis_image: "docker.io/library/redis:8-alpine"
 nextcloud_service_nginx_image: "docker.io/library/nginx:1.31-alpine"
 
-# Required, no default: nextcloud_service_db_password, nextcloud_service_admin_password
+# Required; the role refuses to run with either left empty.
+nextcloud_service_db_password: ""
+nextcloud_service_admin_password: ""
 nextcloud_service_db_name: nextcloud
 nextcloud_service_db_user: nextcloud
 nextcloud_service_admin_user: admin
