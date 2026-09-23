@@ -103,8 +103,8 @@
     dest: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d/after-dump.conf
     content: |
       [Unit]
-      Wants=pg-dumpall.service
-      After=pg-dumpall.service
+      Wants={{ service_name }}-pg-dumpall.service
+      After={{ service_name }}-pg-dumpall.service
     owner: root
     mode: '0644'
   notify: Reload systemd
@@ -112,7 +112,7 @@
 - name: Template the pg_dumpall service
   ansible.builtin.template:
     src: pg-dumpall.service.j2
-    dest: /etc/systemd/system/pg-dumpall.service
+    dest: /etc/systemd/system/{{ service_name }}-pg-dumpall.service
     owner: root
     mode: '0644'
   notify: Reload systemd

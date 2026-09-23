@@ -139,17 +139,16 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 
 ## Backups
 
-`pg-dumpall.service` dumps the cluster into `data/db_dumps/`, so the nightly
-Btrfs snapshot (00:00, `home-server-core`) holds a consistent database. The dump
-has no timer of its own. A drop-in gives the snapshot unit `Wants=` and
+`nextcloud-pg-dumpall.service` dumps the cluster into `data/db_dumps/`, so the
+nightly Btrfs snapshot (00:00, `home-server-core`) holds a consistent database.
+The dump has no timer of its own. A drop-in gives the snapshot unit `Wants=` and
 `After=` on the dump. That starts the dump in the same transaction and orders it
 first. Two timers are two transactions, and `After=` orders nothing between two
-transactions.
-The service writes the dump as `.tmp` and renames it on success. A dump that
-died halfway therefore never reaches a snapshot under a real name. A dump older
-than `nextcloud_service_db_dump_retention_days` is pruned, 30 days by default.
-The dump has no `DROP` statements, and the container has no `postgres` role.
-`nextcloud` is the superuser.
+transactions. The service writes the dump as `.tmp` and renames it on success. A
+dump that died halfway therefore never reaches a snapshot under a real name. A
+dump older than `nextcloud_service_db_dump_retention_days` is pruned, 30 days by
+default. The dump has no `DROP` statements, and the container has no `postgres`
+role. `nextcloud` is the superuser.
 
 On success the unit writes `dump_last_success_timestamp_seconds` to
 `/var/lib/node-textfile/dump-<service>.prom`. The role seeds that file with the
@@ -288,7 +287,7 @@ The upgrade is one way, so take a named rollback point first.
 that already has one.
 
 ```bash
-run0 systemctl start pg-dumpall.service
+run0 systemctl start nextcloud-pg-dumpall.service
 run0 btrfs subvolume snapshot -r /var/services/nextcloud /var/services/snapshots/nextcloud/pre-<major>
 ```
 
