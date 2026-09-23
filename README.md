@@ -5,12 +5,12 @@ the pod. This project also builds and signs a custom image.
 
 The pod holds the application, PostgreSQL, Redis, nginx and four job
 containers. `home-server-bunker` puts it on the internet.
-`home-server-core` prepares the host.
+`home-server` prepares the host.
 
 ## Running a command as the service user
 
 Every `podman` line below runs as the `nextcloud` user:
-`run0 --user=nextcloud -- bash -c '<the line>'`. `home-server-deploy/README.md`,
+`run0 --user=nextcloud -- bash -c '<the line>'`. `home-server/README.md`,
 "Operations", explains the form.
 
 ## Architecture
@@ -143,7 +143,7 @@ podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
 ## Backups
 
 `nextcloud-pg-dumpall.service` dumps the cluster into `data/db_dumps/`, so the
-nightly Btrfs snapshot (00:00, `home-server-core`) holds a consistent database.
+nightly Btrfs snapshot (00:00, `home-server`) holds a consistent database.
 The dump has no timer of its own. A drop-in gives the snapshot unit `Wants=` and
 `After=` on the dump. That starts the dump in the same transaction and orders it
 first. Two timers are two transactions, and `After=` orders nothing between two
@@ -322,7 +322,7 @@ disabled.
 
 To go back, revert the tag and restore the named snapshot. `config.php` records
 the new version, so the old image refuses to start without it. Use
-`home-server-deploy/README.md`, "Rolling back", "A service", with
+`home-server/README.md`, "Rolling back", "A service", with
 `/var/services/snapshots/nextcloud/pre-<major>` as the source. Delete the named
 snapshot when the upgrade is good, because retention covers dated names only:
 `run0 btrfs subvolume delete /var/services/snapshots/nextcloud/pre-<major>`.
