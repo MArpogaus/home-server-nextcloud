@@ -57,31 +57,18 @@
       changed_when: false
 
     # --replace restarts the pod, so write only a secret that differs.
-    - name: Read the current podman secrets
+    - name: Create the podman secrets
       ansible.builtin.command:
-        cmd: >-
-          podman secret inspect --showsecret --format {{ '{{.SecretData}}' }}
-          {{ item.name }}
+        cmd: podman secret create {{ item.name }} -
+        stdin: "{{ item.value }}"
+        stdin_add_newline: false
       loop: "{{ nextcloud_service_secrets }}"
       loop_control:
         label: "{{ item.name }}"
-      register: nextcloud_service_secret_current
-      changed_when: false
-      failed_when: false
+      register: nextcloud_service_secret_create
+      changed_when: nextcloud_service_secret_create.rc == 0
+      failed_when: nextcloud_service_secret_create.rc != 0 and 'in use' not in nextcloud_service_secret_create.stderr
       no_log: true
-
-    - name: Write the podman secrets that changed
-      ansible.builtin.command:
-        cmd: podman secret create --replace {{ item.item.name }} -
-        stdin: "{{ item.item.value }}"
-        stdin_add_newline: false
-      loop: "{{ nextcloud_service_secret_current.results }}"
-      loop_control:
-        label: "{{ item.item.name }}"
-      when: item.stdout | default('') != item.item.value
-      changed_when: true
-      no_log: true
-      register: nextcloud_service_secrets_written
 
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
@@ -132,8 +119,6 @@
 - name: Deploy the Quadlets
   ansible.builtin.import_role:
     name: quadlet_service
-  vars:
-    quadlet_service_restart: "{{ nextcloud_service_secrets_written is changed }}"
 
 - name: Configure Nextcloud as the service user
   become: true
