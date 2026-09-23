@@ -128,7 +128,10 @@ itself. Nextcloud therefore reads the client address from `X-Real-IP` alone
 Database and admin credentials are podman secrets, not environment variables.
 They do not appear in `podman inspect` or `/proc/<pid>/environ`. Both images
 accept the `*_FILE` convention. The role writes a secret only when its value
-differs, because a written secret restarts the pod.
+differs, because a written secret restarts the pod. The images read the secrets
+on their first start only, so the role applies a changed value itself: the admin
+password with `occ user:resetpassword`, the database password with `ALTER ROLE`
+and `occ config:import` into `config.php`. Each value travels on stdin.
 
 The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
 only. The role sets the domains with `occ` on every run, so a domain added or

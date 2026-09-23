@@ -135,6 +135,11 @@
   vars:
     quadlet_service_restart: "{{ nextcloud_service_secrets_written is changed }}"
 
+- name: Name the secrets that changed
+  ansible.builtin.set_fact:
+    nextcloud_service_secrets_changed: >-
+      {{ nextcloud_service_secrets_written.results | selectattr('changed') | map(attribute='item.item.name') | list }}
+
 - name: Configure Nextcloud as the service user
   become: true
   become_user: "{{ service_name }}"
@@ -158,6 +163,37 @@
       loop_control:
         index_var: idx
       changed_when: false
+
+    # The images read their password secrets on first start only.
+    - name: Apply a changed admin password
+      ansible.builtin.command:
+        cmd: >-
+          podman exec -i -u www-data nextcloud-app sh -c 'read -r OC_PASS; export OC_PASS;
+          exec php /var/www/html/occ user:resetpassword --password-from-env {{ nextcloud_service_admin_user }}'
+        stdin: "{{ nextcloud_service_admin_password }}"
+      when: "'nextcloud_service_admin_password' in nextcloud_service_secrets_changed"
+      changed_when: true
+      no_log: true
+
+    - name: Apply a changed database password to the role
+      ansible.builtin.command:
+        cmd: >-
+          podman exec -i nextcloud-db psql -v ON_ERROR_STOP=1
+          -U {{ nextcloud_service_db_user }} -d postgres
+        stdin: >-
+          ALTER ROLE {{ nextcloud_service_db_user }}
+          PASSWORD '{{ nextcloud_service_db_password | replace("'", "''") }}';
+      when: "'nextcloud_service_db_password' in nextcloud_service_secrets_changed"
+      changed_when: true
+      no_log: true
+
+    - name: Apply a changed database password to config.php
+      ansible.builtin.command:
+        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
+        stdin: "{{ {'system': {'dbpassword': nextcloud_service_db_password}} | to_json }}"
+      when: "'nextcloud_service_db_password' in nextcloud_service_secrets_changed"
+      changed_when: true
+      no_log: true
 
     - name: Read which apps are enabled
       ansible.builtin.command:
