@@ -444,7 +444,7 @@ default, and the major a host still pins until its upgrade. `main` publishes
 `:<major>-dev`, which the test VM follows. A nightly run compares the base image
 digest that the last build recorded as a label with the digest
 `nextcloud:<major>-fpm` carries now. It rebuilds only the majors whose base
-moved. A new major is a hand edit of `versions` in that workflow.
+moved. "Major upgrade" says where a new major goes.
 
 ## License
 
