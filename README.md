@@ -352,69 +352,6 @@ run0 --user=nextcloud -- bash -c 'podman exec -u www-data nextcloud-app php occ 
 The dump rewinds the database to midnight while `data/data` stays current, so
 `files:scan --all` is required. A whole-subvolume restore has no such gap.
 
-### Restoring from another host
-
-This restores a `pg_dumpall -c` dump and a data directory from another host
-onto a fresh deploy.
-
-1. Deploy an empty host and get the functional test to 0 failed.
-2. Stop the pod:
-   `run0 --user=nextcloud -- systemctl --user stop nc-pod.service`. Copy the
-   files as root in a named unit, so a dropped SSH session cannot stop it
-   (`run0 --unit=nc-restore-files -- sh -c 'rsync ... >/var/tmp/rsync.log 2>&1'`).
-   Run the rsync dry run again afterwards and expect no output. Then give the
-   data directory, never the service home (that is the user's Podman store), to
-   the user and to `www-data` inside the containers:
-
-   ```bash
-   run0 chown -R nextcloud:nextcloud /var/services/nextcloud/data
-   run0 --user=nextcloud -- bash -c 'podman unshare chown -R 33:33 /var/services/nextcloud/data/data /var/services/nextcloud/data/config /var/services/nextcloud/data/custom_apps'
-   run0 --user=nextcloud -- systemctl --user start nc-pod.service
-   ```
-
-   `db_data` belongs to postgres, so the second chown does not cover `data/`.
-   An NFS source must be mounted `hard`: a soft mount turns a slow NAS into
-   skipped files.
-3. Copy only `instanceid`, `passwordsalt` and `secret` from the source
-   `config.php`. Nextcloud's encrypted credentials need them, and the rest of
-   the file carries the source host's database, Redis and domain settings.
-4. Stop the clients as in "Restoring this host's dump". Then restore as the
-   bootstrap role. The server refuses `DROP ROLE` on the role that owns
-   `postgres`, and the deploy already created every role in the dump, so the
-   `DROP ROLE` and `CREATE ROLE` lines go. The dump's `ALTER ROLE` sets the
-   source password, so the last command sets the local one. That command reads
-   the Podman secret inside the container and pipes the statement, so the
-   password is on no command line:
-
-   ```bash
-   run0 --user=nextcloud -- bash -c '
-     set -euo pipefail
-     DUMP=/var/services/nextcloud/data/db_dumps/<the copied dump>.sql
-     podman exec nextcloud-db psql -v ON_ERROR_STOP=1 -U nextcloud -d postgres -c "DROP DATABASE IF EXISTS nextcloud;"
-     sed -E "/^DROP ROLE /d; /^CREATE ROLE /d; /^DROP DATABASE nextcloud;\$/d" "$DUMP" |
-       podman exec -i nextcloud-db psql -v ON_ERROR_STOP=1 -U nextcloud -d postgres -q
-     podman exec nextcloud-db sh -c "{ printf \"\\\\set pw %s\\n\" \"\$(cat /run/secrets/nextcloud_service_db_password)\"; echo \"ALTER ROLE nextcloud PASSWORD :'"'"'pw'"'"';\"; } | psql -v ON_ERROR_STOP=1 -U nextcloud -d postgres"'
-   ```
-
-   Check it on the VM first: the quoting of the last line is the fragile
-   part. Count `oc_users` before you go on.
-5. Start the pod. In `nextcloud-app` run, in this order: `occ upgrade`,
-   `maintenance:repair --include-expensive`, `db:add-missing-indices`,
-   `db:add-missing-columns`, `db:add-missing-primary-keys`, `files:scan --all`,
-   `files:scan-app-data` and `setupchecks`.
-   - Read the disabled list of `occ app:list`. A bundled app that is disabled
-     on the source never ran its migrations, and its missing columns show up
-     later as `SQLSTATE[25P02]` in an unrelated job. Enable it.
-   - A file copy does not carry store apps. Install them with
-     `occ app:install`.
-6. A copy that carries `oc_previews` without the preview files records
-   previews that do not exist. Run `occ preview:cleanup`, then
-   `preview:generate-all` in the preview container. A rerun skips finished
-   work.
-7. Recognize keeps its results in the database, so run `occ recognize:recrawl`.
-   For a first bulk run, use `occ recognize:clear-background-jobs` and then
-   `occ recognize:classify` in the recognize container.
-
 ## Role contract
 
 The contract is in `home-server-template/README.md`. Two points are specific
