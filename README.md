@@ -104,19 +104,20 @@ those panels are empty.
 
 ### Secrets and domains
 
-The admin user and the trusted domains come from `secrets/vars.yml`
-through `quadlets/configs/nextcloud.env.j2`. That template also holds the fixed
-php-fpm values that `zz-pool.conf` reads from the environment. The role sets
-`overwrite.cli.url`, `overwriteprotocol`, `maintenance_window_start` and the
-notify_push endpoint with `occ` on every run (`nextcloud_service_settings`). It
-reads each value first, so an unchanged deploy reports no change.
-`occ notify_push:self-test` proves the push path. The test calls the public URL,
-which on the test VM resolves to the real host. Run the test on the host that it
-tests. There, four of its five checks pass. The fifth check compares client
-addresses on a request that went out and came back through the router. The
-router's hairpin NAT adds the home address as a hop, and no trusted-proxy list
-must contain that hop. Clients from outside carry one hop, the proxy, and
-Nextcloud resolves them correctly.
+The admin user is `nextcloud_service_admin_user` (default `admin`); its password
+and the database password come from the host's vars file. The trusted domains
+reach the image through `quadlets/configs/nextcloud.env.j2`. That template also
+holds the fixed php-fpm values that `zz-pool.conf` reads from the environment.
+The role sets `overwrite.cli.url`, `overwriteprotocol`,
+`maintenance_window_start` and the notify_push endpoint with `occ` on every run
+(`nextcloud_service_settings`). It reads each value first, so an unchanged
+deploy reports no change. `occ notify_push:self-test` proves the push path. The
+test calls the public URL, which on the test VM resolves to the real host. Run
+the test on the host that it tests. There, four of its five checks pass. The
+fifth check compares client addresses on a request that went out and came back
+through the router. The router's hairpin NAT adds the home address as a hop, and
+no trusted-proxy list must contain that hop. Clients from outside carry one hop,
+the proxy, and Nextcloud resolves them correctly.
 
 `nextcloud_service_trusted_proxies` defaults to RFC1918 plus link-local,
 because BunkerWeb's traffic arrives through the host. Nextcloud skips every
