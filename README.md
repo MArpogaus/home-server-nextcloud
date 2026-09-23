@@ -41,12 +41,12 @@ syslog. Four programs here open their log by path. All of them write to
 `/dev/log`, which every container that runs `occ` or a web server mounts:
 
 - nginx: `quadlets/configs/nginx.conf.j2` sets
-  `error_log`/`access_log syslog:server=unix:/dev/log,tag=nginx`. The unit uses
-  `Exec=nginx -e stderr -g "daemon off;"`, because nginx opens its compiled-in
-  log path before it reads the config.
+  `error_log`/`access_log syslog:server=unix:/dev/log,tag=nextcloud_nginx`. The
+  unit uses `Exec=nginx -e stderr -g "daemon off;"`, because nginx opens its
+  compiled-in log path before it reads the config.
 - php-fpm: `containers/context/configs/zz-pool.conf` sets `error_log = syslog`
-  and `syslog.ident = php-fpm`. The fpm access log is off. nginx logs every
-  request as JSON.
+  and `syslog.ident = nextcloud-php-fpm`. The fpm access log is off. nginx logs
+  every request as JSON.
 - Nextcloud itself: the role sets `log_type syslog`, tag `nextcloud`, one JSON
   object per line, in `data/config/log.config.php`. If you use the `errorlog`
   type, the log goes through php-fpm's caught worker output. php-fpm discards
@@ -55,9 +55,12 @@ syslog. Four programs here open their log by path. All of them write to
 - crond in the cron and preview containers: `busybox crond -f -l 0 -S` instead
   of the image's `/cron.sh`, which writes to `/dev/stdout`.
 
-Look for them with `journalctl SYSLOG_IDENTIFIER=nginx`, `=php-fpm` and
-`=nextcloud`. An `occ` process prints its own progress to the unit's stream,
-and logs to syslog like the rest.
+Look for them with `journalctl SYSLOG_IDENTIFIER=nextcloud_nginx`,
+`=nextcloud-php-fpm` and `=nextcloud`. Each ident starts with the service name,
+because a line written through `/dev/log` inside a container carries no
+`service` label, and a rule tells the services apart by the ident alone. An
+`occ` process prints its own progress to the unit's stream, and logs to syslog
+like the rest.
 
 ## Configuration
 

@@ -1,6 +1,6 @@
 worker_processes auto;
 
-error_log  syslog:server=unix:/dev/log,nohostname,tag=nginx warn;
+error_log  syslog:server=unix:/dev/log,nohostname,tag=nextcloud_nginx warn;
 pid        /var/run/nginx.pid;
 
 events {
@@ -27,7 +27,7 @@ http {
         '"http_x_real_ip": "$http_x_real_ip"'
         '}';
 
-    access_log  syslog:server=unix:/dev/log,nohostname,tag=nginx,severity=info json_analytics;
+    access_log  syslog:server=unix:/dev/log,nohostname,tag=nextcloud_nginx,severity=info json_analytics;
 
     sendfile        on;
     server_tokens   off;

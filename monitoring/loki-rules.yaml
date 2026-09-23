@@ -41,12 +41,12 @@ groups:
       - alert: Nextcloud5xx
         expr: |
           (
-            sum(count_over_time({syslog_identifier="nginx"} |~ `"status": "5\d\d"` [10m]))
+            sum(count_over_time({syslog_identifier="nextcloud_nginx"} |~ `"status": "5\d\d"` [10m]))
             /
-            sum(count_over_time({syslog_identifier="nginx"} |= `"status": ` [10m]))
+            sum(count_over_time({syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m]))
           ) > 0.05
           and
-          sum(count_over_time({syslog_identifier="nginx"} |= `"status": ` [10m])) > 50
+          sum(count_over_time({syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m])) > 50
         for: 5m
         labels:
           severity: warning
