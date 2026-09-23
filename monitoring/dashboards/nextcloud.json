@@ -74,7 +74,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" [1h])) / 60 or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" [1h])) / 60 or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -131,7 +131,7 @@
       },
       "targets": [
         {
-          "expr": "quantile_over_time(0.95, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [1h]) by (job)",
+          "expr": "quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [1h]) by (job)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -195,7 +195,7 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status =~ \"5..\" [1h])) or vector(0)",
+          "expr": "sum(count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status =~ \"5..\" [1h])) or vector(0)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -560,7 +560,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (class) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format class=\"{{ .status | substr 0 1 }}xx\" [$__auto]))",
+          "expr": "sum by (class) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format class=\"{{ .status | substr 0 1 }}xx\" [$__auto]))",
           "legendFormat": "{{class}}",
           "queryType": "range",
           "refId": "A",
@@ -688,7 +688,7 @@
       },
       "targets": [
         {
-          "expr": "label_replace(quantile_over_time(0.5, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.5, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "A",
@@ -698,7 +698,7 @@
           }
         },
         {
-          "expr": "label_replace(quantile_over_time(0.95, {user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "B",
@@ -708,7 +708,7 @@
           }
         },
         {
-          "expr": "label_replace(max_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
+          "expr": "label_replace(max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "C",
@@ -800,7 +800,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (client) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
+          "expr": "sum by (client) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
           "legendFormat": "{{client}}",
           "queryType": "range",
           "refId": "A",
@@ -867,7 +867,7 @@
       },
       "targets": [
         {
-          "expr": "label_replace(sum(sum_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap bytes_sent [$__auto])), \"series\", \"sent to clients\", \"\", \"\")",
+          "expr": "label_replace(sum(sum_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap bytes_sent [$__auto])), \"series\", \"sent to clients\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "A",
@@ -947,7 +947,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (path) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format path=\"{{ regexReplaceAll \\\"^(/[^/?]*(/[^/?]*)?).*\\\" .request_uri \\\"${1}\\\" }}\" [$__range])))",
+          "expr": "topk(10, sum by (path) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format path=\"{{ regexReplaceAll \\\"^(/[^/?]*(/[^/?]*)?).*\\\" .request_uri \\\"${1}\\\" }}\" [$__range])))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -1032,7 +1032,7 @@
       },
       "targets": [
         {
-          "expr": "topk(10, sum by (addr) (count_over_time({user_unit=\"nextcloud-web.service\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format addr=\"{{ if .http_x_real_ip }}{{ .http_x_real_ip }}{{ else }}{{ .remote_addr }}{{ end }}\" [$__range])))",
+          "expr": "topk(10, sum by (addr) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | label_format addr=\"{{ if .http_x_real_ip }}{{ .http_x_real_ip }}{{ else }}{{ .remote_addr }}{{ end }}\" [$__range])))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
