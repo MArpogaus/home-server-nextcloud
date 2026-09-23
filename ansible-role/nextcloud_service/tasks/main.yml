@@ -24,8 +24,8 @@
   ansible.builtin.file:
     path: "{{ service_home }}/{{ item.item }}"
     state: directory
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    owner: "{{ service_name }}"
+    group: "{{ service_name }}"
     mode: '0755'
   loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
   loop_control:
@@ -35,7 +35,7 @@
   ansible.builtin.shell:
     cmd: >-
       btrfs subvolume create {{ service_home }}/data/custom_apps &&
-      chown {{ service_user }}:{{ service_user }} {{ service_home }}/data/custom_apps
+      chown {{ service_name }}:{{ service_name }} {{ service_home }}/data/custom_apps
     creates: "{{ service_home }}/data/custom_apps"
 
 - name: Keep custom_apps traversable
@@ -45,7 +45,7 @@
 
 - name: Prepare the directories and secrets as the service user
   become: true
-  become_user: "{{ service_user }}"
+  become_user: "{{ service_name }}"
   block:
     - name: Own the Nextcloud data and config dirs as the container www-data user
       ansible.builtin.command:
@@ -87,8 +87,8 @@
   ansible.builtin.template:
     src: pre-snapshot-pg-dump.sh.j2
     dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
-    owner: "{{ service_user }}"
-    group: "{{ service_user }}"
+    owner: "{{ service_name }}"
+    group: "{{ service_name }}"
     mode: '0755'
 
 - name: Make room for the snapshot drop-in
@@ -137,7 +137,7 @@
 
 - name: Configure Nextcloud as the service user
   become: true
-  become_user: "{{ service_user }}"
+  become_user: "{{ service_name }}"
   block:
     - name: Wait for Nextcloud to finish installing
       ansible.builtin.command: >-
