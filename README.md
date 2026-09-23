@@ -66,15 +66,10 @@ like the rest.
 
 ### Images
 
-| Var | Default |
-|---|---|
-| `nextcloud_service_app_image` | `ghcr.io/marpogaus/nextcloud:35` |
-| `nextcloud_service_db_image` | `docker.io/library/postgres:18-alpine` |
-| `nextcloud_service_redis_image` | `docker.io/library/redis:8-alpine` |
-| `nextcloud_service_nginx_image` | `docker.io/library/nginx:1.31-alpine` |
-
-Renovate bumps postgres, redis and nginx. The app image is built in this
-repository, and the workflow matrix owns its major version.
+The image variables and their tags are in
+`ansible-role/nextcloud_service/defaults/main.yml`. Renovate bumps postgres,
+redis and nginx. The app image is built in this repository, and the workflow
+matrix owns its major version.
 
 ### Sizing (8 GB host)
 
@@ -184,12 +179,13 @@ around it.
 
 An app lands in `custom_apps` only because `apps.config.php` puts it on
 `apps_paths`. The image copies that file into the mounted config directory
-**only while that directory is still empty**, on the very first container
-start. Anything that the role writes into `config/` before then costs the whole
+**only while that directory is still empty**, on the very first container start.
+Anything that the role writes into `config/` before then costs the whole
 bootstrap. `apps_paths` stays unset, and every app installs into `apps/`. The
 image's `rsync --delete` then wipes `apps/` on the next version upgrade. The
 role therefore writes nothing into `config/`; it sets every value with `occ`
-after the install. The container scripts ask `occ app:getpath` rather than assuming a directory.
+after the install. The container scripts ask `occ app:getpath` rather than
+assuming a directory.
 
 ### Access log redaction
 
@@ -298,8 +294,8 @@ The dashboard follows `home-server-monitoring/README.md`, "Dashboards".
 
 ### Major upgrade
 
-CI builds the listed majors, and the role pins one. The major list is kept by hand in two
-places:
+CI builds the listed majors, and the role pins one. The major list is kept by
+hand in two places:
 
 - `versions` in `.github/workflows/build.yml`, which passes each major to
   `containers/Containerfile` as `NEXTCLOUD_TAG`
@@ -451,7 +447,8 @@ default, and the major a host still pins until its upgrade. `main` publishes
 its host vars set that tag. Every night the default branch compares, for each
 major, the base image digest that the last build of its own tag recorded as a
 label with the digest `nextcloud:<major>-fpm` carries now, and starts the same
-check on `main`. Each branch rebuilds only the majors whose base moved. "Major upgrade" says where a new major goes.
+check on `main`. Each branch rebuilds only the majors whose base moved. "Major
+upgrade" says where a new major goes.
 
 ## License
 
