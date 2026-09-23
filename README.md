@@ -300,8 +300,7 @@ its `links`, and commit it.
 
 ### Major upgrade
 
-CI builds the listed majors and tags the highest as `latest`. The role pins a
-major and never follows `latest`. The major list is kept by hand in two
+CI builds the listed majors, and the role pins one. The major list is kept by hand in two
 places:
 
 - `versions` in `.github/workflows/build.yml`, which passes each major to
@@ -450,11 +449,11 @@ by hand.
 
 `.github/workflows/build.yml` publishes every major a host runs: the role
 default, and the major a host still pins until its upgrade. `main` publishes
-`:<major>`, and the highest major also gets `:latest`. `dev` publishes
-`:<major>-dev`, which the test VM follows. A nightly run compares the base image
-digest that the last build recorded as a label with the digest
-`nextcloud:<major>-fpm` carries now. It rebuilds only the majors whose base
-moved. "Major upgrade" says where a new major goes.
+`:<major>` and `dev` publishes `:<major>-dev`; a host follows `-dev` only when
+its host vars set that tag. Every night the default branch compares, for each
+major, the base image digest that the last build of its own tag recorded as a
+label with the digest `nextcloud:<major>-fpm` carries now, and starts the same
+check on `main`. Each branch rebuilds only the majors whose base moved. "Major upgrade" says where a new major goes.
 
 ## License
 
