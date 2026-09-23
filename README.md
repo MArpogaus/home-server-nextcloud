@@ -253,8 +253,7 @@ look for an `oc_jobs` row whose `reserved_at` is set and whose worker is
 gone, and clear that column.
 
 The worker installs the app and fetches the models and the node binary (about
-2.9 GB, once). For that reason it starts late on a fresh host. The other two
-app containers install and enable their apps the same way: preview and push.
+2.9 GB, once). For that reason it starts late on a fresh host.
 
 ## Traps in this role
 
