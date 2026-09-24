@@ -1,0 +1,21 @@
+ARG NEXTCLOUD_TAG
+FROM nextcloud:${NEXTCLOUD_TAG}-fpm
+
+RUN set -ex; \
+    \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        ghostscript \
+    ; \
+    rm -rf /var/lib/apt/lists/*
+
+# The image's own entrypoint stays. It installs or upgrades Nextcloud only
+# when the command is php-fpm, so the other containers pass their script as
+# the command and skip that branch.
+COPY --chmod=0755 context/scripts/notify_push.sh /notify_push.sh
+COPY --chmod=0755 context/scripts/previewgenerator.sh /previewgenerator.sh
+COPY --chmod=0755 context/scripts/recognize-worker.sh /recognize-worker.sh
+COPY context/configs/prev.config.php /usr/src/nextcloud/config/
+COPY context/configs/phone.config.php /usr/src/nextcloud/config/
+COPY context/configs/zz-pool.conf /usr/local/etc/php-fpm.d/

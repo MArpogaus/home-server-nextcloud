@@ -1,0 +1,88 @@
+name: Build Nextcloud Image
+
+on:
+  push:
+    branches: [main, dev]
+  schedule:
+    - cron: 0 7 * * *
+  workflow_dispatch:
+    inputs:
+      only-changed:
+        description: Build only the majors whose base image moved
+        type: boolean
+        default: false
+
+permissions: {}
+
+# Two runs publishing the same tags would overwrite each other's digest
+# between signing and verification.
+concurrency:
+  group: build-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  # A scheduled run on the default branch starts the same check on main, whose
+  # tags production follows.
+  schedule-main:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - run: gh workflow run build.yml --repo "$GITHUB_REPOSITORY" --ref main -f only-changed=true
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # Scheduled checks build only the majors whose base image digest moved.
+  changed:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.compare.outputs.tags }}
+    steps:
+      - id: compare
+        env:
+          ONLY_CHANGED: ${{ github.event_name == 'schedule' || inputs.only-changed }}
+          SUFFIX: ${{ github.ref_name == 'dev' && '-dev' || '' }}
+        run: |
+          set -euo pipefail
+          # Every major a host runs.
+          versions="34 35"
+          tags=()
+          for t in $versions; do
+            if [ "${ONLY_CHANGED}" != "true" ]; then tags+=("$t"); continue; fi
+            # Both sides are index digests, the same skopeo call the action records.
+            base=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/library/nextcloud:${t}-fpm")
+            built=$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.base.digest"}}' \
+              "docker://ghcr.io/marpogaus/nextcloud:${t}${SUFFIX}" 2>/dev/null || echo none)
+            [ "$base" = "$built" ] || tags+=("$t")
+          done
+          printf 'tags=%s\n' "$(jq -cn '$ARGS.positional' --args "${tags[@]}")" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changed
+    # workflow_dispatch has no branch filter: only main and dev publish and sign.
+    if: >-
+      needs.changed.outputs.tags != '[]'
+      && (github.ref_name == 'main' || github.ref_name == 'dev')
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJson(needs.changed.outputs.tags) }}
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+      id-token: write
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@77cdc8d1189ed4b12a1195433ddd1aca7c7d3439 # v1.7.0
+    with:
+      image-name: nextcloud
+      containerfile: ./containers/Containerfile
+      context: ./containers
+      platform: linux/amd64
+      free-disk-space: false
+      overwrite-ref-tag: ${{ matrix.tag }}${{ github.ref_name == 'dev' && '-dev' || '' }}
+      build-args: |
+        NEXTCLOUD_TAG=${{ matrix.tag }}
+    secrets:
+      SIGNING_SECRET: ${{ secrets.SIGNING_SECRET }}

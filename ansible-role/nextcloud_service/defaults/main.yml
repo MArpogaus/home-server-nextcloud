@@ -1,0 +1,42 @@
+---
+
+nextcloud_service_app_image: "ghcr.io/marpogaus/nextcloud:35"
+nextcloud_service_db_image: "docker.io/library/postgres:18-alpine"
+nextcloud_service_redis_image: "docker.io/library/redis:8-alpine"
+nextcloud_service_nginx_image: "docker.io/library/nginx:1.31-alpine"
+
+# Required; the role refuses to run with either left empty.
+nextcloud_service_db_password: ""
+nextcloud_service_admin_password: ""
+nextcloud_service_admin_user: admin
+nextcloud_service_trusted_domains: "cloud.example.com"
+nextcloud_service_url: "https://{{ nextcloud_service_trusted_domains.split() | first }}"
+
+nextcloud_service_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
+
+nextcloud_service_php_max_children: 8
+nextcloud_service_php_memory_limit: 512M
+nextcloud_service_php_upload_limit: 15G
+
+nextcloud_service_db_dump_retention_days: 30
+
+# README, "Apps".
+nextcloud_service_apps:
+  - admin_audit
+
+# README, "Secrets and domains".
+nextcloud_service_config:
+  system:
+    trusted_domains: "{{ nextcloud_service_trusted_domains.split() }}"
+    overwrite.cli.url: "{{ nextcloud_service_url }}"
+    overwriteprotocol: https
+    maintenance_window_start: 1
+    log_type: syslog
+    log_type_audit: syslog
+    syslog_tag: nextcloud
+    syslog_tag_audit: nextcloud
+    loglevel: 1
+    log.condition: {apps: [admin_audit]}
+  apps:
+    notify_push:
+      base_endpoint: "{{ nextcloud_service_url }}/push"

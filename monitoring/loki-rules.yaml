@@ -1,0 +1,68 @@
+groups:
+  - name: nextcloud
+    interval: 1m
+    rules:
+      # PANIC only: every client that connects before the server is ready logs FATAL.
+      - alert: NextcloudDatabasePanic
+        expr: |
+          sum(count_over_time({service="nextcloud", user_unit="nextcloud-db.service"} |= "PANIC" [15m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL logged PANIC"
+          description: "Read `journalctl --user-unit nextcloud-db.service` as the nextcloud user."
+
+      - alert: NextcloudCronStale
+        expr: |
+          absent_over_time({service="nextcloud", syslog_identifier="crond"} |= "cmd php -f /var/www/html/cron.php" [30m])
+        labels:
+          severity: warning
+        annotations:
+          summary: "cron.php has not started in 30 minutes"
+          description: "Background jobs, previews and mail stop. Check nextcloud-cron."
+
+      - alert: NextcloudErrors
+        expr: |
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 3 [1h])) > 20
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nextcloud logged {{ $value }} errors in an hour"
+
+      - alert: NextcloudFatal
+        expr: |
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud"} | json level="level" | __error__="" | level >= 4 [15m])) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nextcloud logged a fatal error"
+
+      - alert: Nextcloud5xx
+        expr: |
+          (
+            sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |~ `"status": "5\d\d"` [10m]))
+            /
+            sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m]))
+          ) > 0.05
+          and
+          sum(count_over_time({service="nextcloud", syslog_identifier="nextcloud_nginx"} |= `"status": ` [10m])) > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 5 % of Nextcloud requests answer 5xx"
+
+      - alert: NextcloudBruteForce
+        expr: |
+          sum by (ip) (
+            count_over_time(
+              {service="nextcloud", syslog_identifier="nextcloud"}
+                |= "Login failed: '"
+                | regexp "Login failed: '[^']+' \\(Remote IP: '(?P<ip>[^']+)'\\)" [15m]
+            )
+          ) > 10
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 10 failed Nextcloud logins from {{ $labels.ip }} in 15 minutes"
