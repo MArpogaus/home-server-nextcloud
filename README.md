@@ -258,11 +258,10 @@ The worker installs the app and fetches the models and the node binary (about
 - A directory in group root has no mapping inside the rootless user
   namespace, and `podman unshare chown` on it fails with EPERM. Ansible creates
   the directories with an explicit group.
-- `Requires=nextcloud-app.service` on `nextcloud-web` stops the web container
-  when you restart the app by hand, and it does not start the web container
-  again. The role restarts the pod, not single containers. `nextcloud-app`
-  reports healthy (`Notify=healthy`) once php-fpm listens, and nginx starts
-  after that. The job containers carry the same `Requires=`.
+- `nextcloud-web` and the job containers carry
+  `Requires=nextcloud-app.service`, so a restart of the app restarts them too.
+  `nextcloud-app` reports healthy (`Notify=healthy`) once php-fpm listens, and
+  nginx starts after that.
 - The image repository name must be lowercase. podman reports the error at
   pull time only, which looks like a restart loop.
 
