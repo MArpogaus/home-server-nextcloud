@@ -131,7 +131,7 @@
       },
       "targets": [
         {
-          "expr": "quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [1h]) by (job)",
+          "expr": "quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [1h]) by (job)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -688,7 +688,7 @@
       },
       "targets": [
         {
-          "expr": "label_replace(quantile_over_time(0.5, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.5, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "A",
@@ -698,7 +698,7 @@
           }
         },
         {
-          "expr": "label_replace(quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "B",
@@ -708,7 +708,7 @@
           }
         },
         {
-          "expr": "label_replace(max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
+          "expr": "label_replace(max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "C",
