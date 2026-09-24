@@ -23,10 +23,10 @@ signed app image. `home-server-bunker` puts the pod on the internet.
 | `nextcloud_service_db_password`, `_admin_password` | empty | Required |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
 | `nextcloud_service_trusted_domains` | `cloud.example.com` | Space-separated; the first one is the URL |
-| `nextcloud_service_trusted_proxies` | RFC1918, link-local | The proxy's traffic arrives through the host |
+| `nextcloud_service_trusted_proxies` | loopback, RFC1918, link-local | The proxy's traffic arrives through the host |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
-| `nextcloud_service_php_upload_limit` | `15G` | PHP and nginx body limit |
+| `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
 | `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
 | `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
 | `nextcloud_service_config` | see defaults | Keys set on every run |
@@ -59,8 +59,9 @@ largest worker and its request answers 502.
   writes to the php-fpm worker's stderr, which php-fpm discards.
 - The nginx access log has few JSON fields: syslog cuts a line at 1024 bytes.
   It omits the Referer and `$remote_user`, which can carry a share token.
-- `monitoring/alloy-redact.txt` has one pattern per `{token}` route in
-  `appinfo/routes.php`, plus the audit log's `token "…"`.
+- `monitoring/alloy-redact.txt` has one line with an alternative per `{token}`
+  route in `appinfo/routes.php`, and a second line for the audit log's
+  `token "…"`.
 - `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
   that an app's lexicon misses.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
@@ -83,6 +84,8 @@ each major in `versions`, and rebuilds when the base image changes. `main`
 publishes `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev`
 only when its vars set that tag. The major in `nextcloud_service_app_image`
 must be in `versions`, or the host pulls a tag that CI never published.
+`cosign.pub` verifies the signature. `home-server/ignition/config.bu.template`
+embeds the same key for the host's `policy.json`, so a new key goes into both.
 
 ## Alerts
 
