@@ -123,14 +123,26 @@
   become: true
   become_user: "{{ service_name }}"
   block:
-    - name: Wait for Nextcloud to finish installing
+    # Notify=healthy makes the unit active only once php-fpm listens, which is
+    # after the entrypoint's install or upgrade. As long as the app unit's
+    # TimeoutStartSec.
+    - name: Wait for the app container to become healthy
+      ansible.builtin.systemd_service:
+        name: nextcloud-app.service
+        scope: user
+      register: nextcloud_service_app_state
+      until: nextcloud_service_app_state.status.ActiveState == "active"
+      retries: 180
+      delay: 10
+
+    - name: Check that Nextcloud is installed and needs no upgrade
       ansible.builtin.command: >-
         {{ nextcloud_service_occ }} status --output=json
       register: nextcloud_service_status
-      until: '"\"installed\":true" in nextcloud_service_status.stdout'
-      # As long as the app unit's TimeoutStartSec, which a major upgrade needs.
-      retries: 180
-      delay: 10
+      failed_when: >-
+        nextcloud_service_status.rc != 0
+        or not (nextcloud_service_status.stdout | from_json).installed
+        or (nextcloud_service_status.stdout | from_json).needsDbUpgrade
       changed_when: false
 
     - name: Read which apps are enabled
