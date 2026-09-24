@@ -31,8 +31,18 @@ signed app image. `home-server-bunker` puts the pod on the internet.
 | `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
 | `nextcloud_service_config` | see defaults | Keys set on every run |
 
+The app's `Memory=2G` is the PHP budget. `max_children` × `memory_limit` can
+pass it; when the workers and `/tmp` together reach 2G, the kernel kills the
+largest worker and its request answers 502.
+
 ## Specifics
 
+- The job containers (cron, preview, recognize, push) run with `RunInit=true`,
+  `StopSignal=SIGTERM` and `SuccessExitStatus=143`: a shell or crond as PID 1
+  ignores the image's `SIGQUIT`. cron runs `busybox crond -S`, because the
+  image's `/cron.sh` opens `/dev/stdout` by path. nginx starts with
+  `-e stderr`, because it opens its built-in log path before it reads the
+  config.
 - The role writes nothing into `config/` before the first start. The image
   copies `apps.config.php` (`apps_paths`) only into an empty directory;
   without it, apps land in `apps/`, which an upgrade wipes.
@@ -67,7 +77,10 @@ signed app image. `home-server-bunker` puts the pod on the internet.
 php-fpm pool drop-in and two `config.php` drop-ins to `nextcloud:<major>-fpm`.
 The entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
 containers pass their script. `.github/workflows/build.yml` builds and signs
-each major, and rebuilds when the base image changes.
+each major in `versions`, and rebuilds when the base image changes. `main`
+publishes `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev`
+only when its vars set that tag. The major in `nextcloud_service_app_image`
+must be in `versions`, or the host pulls a tag that CI never published.
 
 ## Alerts
 
