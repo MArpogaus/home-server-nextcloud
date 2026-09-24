@@ -1,384 +1,89 @@
 # home-server-nextcloud
 
-This project runs Nextcloud in a rootless Podman pod. An Ansible role deploys
-the pod. This project also builds and signs a custom image.
+This project deploys Nextcloud as the rootless Podman pod `nc` and builds its
+signed app image. `home-server-bunker` puts the pod on the internet.
 
-The pod holds the application, PostgreSQL, Redis, nginx and four job
-containers. `home-server-bunker` puts it on the internet.
-`home-server` prepares the host.
-
-## Running a command as the service user
-
-Every `podman` line below runs as the `nextcloud` user:
-`run0 --user=nextcloud -- bash -c '<the line>'`. `home-server/README.md`,
-"Operations", explains the form.
-
-## Architecture
-
-| Container | Role |
-|---|---|
-| nextcloud-db | Database (`pg_isready` health check) |
-| nextcloud-redis | Cache (`redis-cli ping`) |
-| nextcloud-app | PHP-FPM, custom image |
-| nextcloud-web | nginx; its `status.php` health check covers the whole stack |
-| nextcloud-cron | `cron.php` every 5 min |
-| nextcloud-preview | `preview:pre-generate` every 10 min |
-| nextcloud-recognize | Recognize classifier worker; installs the app and its models |
-| nextcloud-push | `notify_push` daemon |
-
-The four job containers run the custom app image.
-
-The pod publishes `8080` on loopback only, where BunkerWeb reaches it
-(`home-server-bunker/README.md`, "How the proxy reaches the other pods"). Inside
-the pod everything uses `127.0.0.1` (`home-server-template/CONTRIBUTING.md`,
-"Rules a service follows").
-
-### Logging
-
-This pod obeys the `passthrough` logging rule
-(`home-server-template/CONTRIBUTING.md`, "Rules a service follows") with
-syslog. Four programs here open their log by path. All of them write to
-`/dev/log`, which every container that runs `occ` or a web server mounts:
-
-- nginx: `quadlets/configs/nginx.conf.j2` sets
-  `error_log`/`access_log syslog:server=unix:/dev/log,tag=nextcloud_nginx`. The
-  unit uses `Exec=nginx -e stderr -g "daemon off;"`, because nginx opens its
-  compiled-in log path before it reads the config.
-- php-fpm: `containers/context/configs/zz-pool.conf` sets `error_log = syslog`
-  and `syslog.ident = nextcloud-php-fpm`. The fpm access log is off. nginx logs
-  every request as JSON.
-- Nextcloud itself: `nextcloud_service_config` sets `log_type syslog`, tag
-  `nextcloud`, one JSON object per line, in `config.php`. If you use the
-  `errorlog` type, the log goes through php-fpm's caught worker output. php-fpm
-  discards that output when its own log is syslog, and the application log
-  vanishes silently.
-- crond in the cron and preview containers: `busybox crond -f -l 0 -S` instead
-  of the image's `/cron.sh`, which writes to `/dev/stdout`.
-
-Look for them with `journalctl SYSLOG_IDENTIFIER=nextcloud_nginx`,
-`=nextcloud-php-fpm` and `=nextcloud`. Rules and panels select these lines by
-`service="nextcloud"` and the ident; crond keeps its own ident, `crond`. An
-`occ` process prints its own progress to the unit's stream, and logs to syslog
-like the rest.
-
-### Access log redaction
-
-nginx writes each request as one JSON object to syslog, and syslog cuts a
-line at 1024 bytes. A cut line is not valid JSON, so every field in
-`log_format` counts against that limit: the dashboards and the 5xx rule parse
-the line with `| json`.
-
-Several paths carry a live credential in the URI. `/s/<token>` opens a public
-share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
-share page fetches thumbnails and files under its own token. Loki keeps 30
-days, so a raw path hands every reader of Grafana a working link.
-`monitoring/alloy-redact.txt` lists one pattern per route, and
-`home-server-monitoring` replaces the token of every match with `<redacted>`
-before a line reaches Loki, for every producer, the proxy included. A second
-pattern redacts `token "…"`, the form in which the audit log names a public
-share.
-
-Rederive the route list from the deployed image after a major version and
-after an app is enabled:
-
-```bash
-grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
-  /var/www/html/{core,apps/*}/appinfo/routes.php
-```
-
-Two more fields can carry a token. A page served from a share sends that URL
-as the Referer of every request it makes. Public WebDAV sends the share token
-as the basic-auth username, which nginx puts in `$remote_user`. Neither field
-is logged at all.
-
-### Dropped lines
-
-Nextcloud's apps read config keys that their config lexicon does not declare,
-and Nextcloud logs one info line per key per request. The line reports nothing,
-so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
+| Container | Job | Memory ceiling |
+|---|---|---|
+| nextcloud-db | PostgreSQL | 768M |
+| nextcloud-redis | Cache | 128M |
+| nextcloud-app | PHP-FPM, custom image | 2G |
+| nextcloud-web | nginx; `status.php` health check | 128M |
+| nextcloud-cron | `cron.php` every 5 min | 2G |
+| nextcloud-preview | `preview:pre-generate` every 10 min, 1 CPU | 2G |
+| nextcloud-recognize | Recognize classifier worker, 3 CPUs | 2G |
+| nextcloud-push | `notify_push` | 128M |
 
 ## Configuration
 
-### Images
+`ansible-role/nextcloud_service/defaults/main.yml` has the full list.
 
-The image variables and their tags are in
-`ansible-role/nextcloud_service/defaults/main.yml`. Renovate bumps postgres,
-redis and nginx. The app image is built in this repository, and the workflow
-matrix owns its major version.
+| Variable | Default | Meaning |
+|---|---|---|
+| `nextcloud_service_db_password`, `_admin_password` | empty | Required |
+| `nextcloud_service_admin_user` | `admin` | Admin of the first install |
+| `nextcloud_service_trusted_domains` | `cloud.example.com` | Space-separated; the first one is the URL |
+| `nextcloud_service_trusted_proxies` | RFC1918, link-local | The proxy's traffic arrives through the host |
+| `nextcloud_service_php_max_children` | `8` | php-fpm workers |
+| `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
+| `nextcloud_service_php_upload_limit` | `15G` | PHP and nginx body limit |
+| `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
+| `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
+| `nextcloud_service_config` | see defaults | Keys set on every run |
 
-### Sizing (8 GB host)
+## Specifics
 
-| Var | Default |
-|---|---|
-| `nextcloud_service_php_max_children` | 8 |
-| `nextcloud_service_php_memory_limit` | 512M |
+- The role writes nothing into `config/` before the first start. The image
+  copies `apps.config.php` (`apps_paths`) only into an empty directory;
+  without it, apps land in `apps/`, which an upgrade wipes.
+- `occ config:import` sets `nextcloud_service_config` on every run. The image
+  applies `NEXTCLOUD_TRUSTED_DOMAINS` at the first install only.
+- `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
+  out of backups. Its mode is `0755`, because nginx must traverse it.
+- The passwords are podman secrets, read at the first start only.
+- Nextcloud takes the client address from `X-Real-IP` alone, because a client
+  can write `X-Forwarded-For`.
+- nginx, php-fpm, Nextcloud and crond log to syslog through `/dev/log`, so
+  each line keeps its own ident and severity. Container stdout and stderr
+  carry only `info` and `err`. Nextcloud has no stdout log type: `errorlog`
+  writes to the php-fpm worker's stderr, which php-fpm discards.
+- The nginx access log has few JSON fields: syslog cuts a line at 1024 bytes.
+  It omits the Referer and `$remote_user`, which can carry a share token.
+- `monitoring/alloy-redact.txt` has one pattern per `{token}` route in
+  `appinfo/routes.php`, plus the audit log's `token "…"`.
+- `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
+  that an app's lexicon misses.
+- `nextcloud-recognize` runs the five `Classify*Job` classes with
+  `memory_limit=1G`, low-memory batch sizes and `concurrency.enabled=false`,
+  so a classify job that cron takes returns at once while the worker is busy.
+- A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours.
+  Nothing clears it, because a timer could free a job that still runs.
+- The snapshot unit `Wants=` and `After=` the dump, so both run in one
+  transaction. The dump has no timer.
 
-The Quadlets set the container ceilings with `Memory=`. The ceilings are 2G for
-app, cron, preview and Recognize, 768M for the database, and 128M for redis,
-web and push. Recognize and the preview generator also carry a `CPUQuota=`.
+## Custom image
 
-The ceilings add up to more than the host has. They are limits, not
-reservations, and the two heavy jobs are bursty. The app's 2G ceiling is the
-budget for PHP: `max_children` times `memory_limit` (8 × 512M) can pass it,
-because a worker rarely uses its whole limit. When the workers and `/tmp`
-together pass 2G, the kernel kills the largest PHP worker, and its request
-answers 502.
+`containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts, a
+php-fpm pool drop-in and two `config.php` drop-ins to `nextcloud:<major>-fpm`.
+The entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
+containers pass their script. `.github/workflows/build.yml` builds and signs
+each major, and rebuilds when the base image changes.
 
-### Apps
-
-The three helper containers install and enable their own app on start:
-preview generator, Recognize and notify_push. Anything else the deployment
-needs goes in `nextcloud_service_apps`, which the role enables and leaves
-alone afterwards. It holds `admin_audit`. That app writes one log line per
-action (who did what to which file). The file activity panels of
-`monitoring/dashboards/nextcloud.json` read those lines. If you remove the app,
-those panels are empty.
-
-### Secrets and domains
-
-The admin user is `nextcloud_service_admin_user` (default `admin`); its password
-and the database password come from the host's vars file. The trusted domains
-reach the image through `quadlets/configs/nextcloud.env.j2`. That template also
-holds the fixed php-fpm values that `zz-pool.conf` reads from the environment.
-The role imports `nextcloud_service_config` with one `occ config:import` on every
-run: the trusted domains, `overwrite.cli.url`, `overwriteprotocol`,
-`maintenance_window_start`, the log settings and the notify_push endpoint. The
-import sets only these keys and leaves the rest of `config.php` alone. `occ notify_push:self-test` proves the push path. The
-test calls the public URL, which on the test VM resolves to the real host. Run
-the test on the host that it tests. There, four of its five checks pass. The
-fifth check compares client addresses on a request that went out and came back
-through the router. The router's hairpin NAT adds the home address as a hop, and
-no trusted-proxy list must contain that hop. Clients from outside carry one hop,
-the proxy, and Nextcloud resolves them correctly.
-
-`nextcloud_service_trusted_proxies` defaults to RFC1918 plus link-local,
-because BunkerWeb's traffic arrives through the host. Nextcloud skips every
-trusted address in `X-Forwarded-For`, and a client can write that header
-itself. Nextcloud therefore reads the client address from `X-Real-IP` alone
-(`FORWARDED_FOR_HEADERS`), which BunkerWeb sets to the address it sees.
-
-Database and admin credentials are podman secrets, not environment variables.
-They do not appear in `podman inspect` or `/proc/<pid>/environ`. Both images
-accept the `*_FILE` convention. The role creates each secret once, at the first
-deploy, and the images read them on their first start only. A new password on a
-running host is set by hand (`podman secret create --replace`, then
-`occ user:resetpassword`, `ALTER ROLE` and `dbpassword` in `config.php`).
-
-The image applies `NEXTCLOUD_TRUSTED_DOMAINS` in its first-run install branch
-only. The role imports the domains on every run, so the list in `config.php`
-always matches the variable. "Trusted domain error" or HTTP 400 through the proxy therefore means that the variable is
-wrong:
-
-```bash
-podman exec -u www-data nextcloud-app php occ config:system:get trusted_domains
-```
-
-## Backups
-
-`nextcloud-pg-dumpall.service` dumps the cluster into `data/db_dumps/`, so the
-nightly Btrfs snapshot (00:00, `home-server`) holds a consistent database.
-The dump has no timer of its own. A drop-in gives the snapshot unit `Wants=` and
-`After=` on the dump. That starts the dump in the same transaction and orders it
-first. Two timers are two transactions, and `After=` orders nothing between two
-transactions. The service writes the dump as `.tmp` and renames it on success. A
-dump that died halfway therefore never reaches a snapshot under a real name. A
-dump older than `nextcloud_service_db_dump_retention_days` is pruned, 30 days by
-default. The dump has no `DROP` statements, and the container has no `postgres`
-role. `nextcloud` is the superuser.
-
-On success the unit writes `dump_last_success_timestamp_seconds` to
-`/var/lib/node-textfile/dump-<service>.prom`. The role seeds that file with the
-deploy time, so a dump that never succeeds raises home-server's `JobStale` 30
-hours after the deploy.
-
-`data/custom_apps` is its own Btrfs subvolume. A snapshot does not recurse into
-a nested subvolume. App code and the Recognize models (gigabytes the app store
-hands back) therefore stay out of every snapshot and backup. The subvolume
-carries mode `0755`, and `podman unshare chown 33:33` gives it to the
-container's `www-data` uid. On the host that is a subuid of the service user,
-and not the service user itself. nginx runs as its own uid in `nextcloud-web`
-and must traverse the subvolume. If it cannot traverse the subvolume, every app
-asset answers 404.
-
-`custom_apps` is therefore the one directory on the host that holds mutable
-third-party executables outside every snapshot and backup. A cold start
-downloads the apps and the Recognize models again. After a suspected compromise,
-empty the directory and let the containers download them again. Do not restore
-around it.
-
-### App paths
-
-An app lands in `custom_apps` only because `apps.config.php` puts it on
-`apps_paths`. The image copies that file into the mounted config directory
-**only while that directory is still empty**, on the very first container start.
-Anything that the role writes into `config/` before then costs the whole
-bootstrap. `apps_paths` stays unset, and every app installs into `apps/`. The
-image's `rsync --delete` then wipes `apps/` on the next version upgrade. The
-role therefore writes nothing into `config/`; it sets every value with `occ`
-after the install. The container scripts ask `occ app:getpath` rather than
-assuming a directory.
-
-## Recognize
-
-Recognize classifies in background jobs, which otherwise run inside
-`nextcloud-cron`. The worker container runs `occ background-job:worker` for the
-five `Classify*Job` classes of Recognize. It uses `php -d memory_limit=1G`,
-because a face batch does not fit in the 512 MB php-fpm limit. cron.php cannot
-exclude a class, so it still takes a classify job now and then. The worker
-entrypoint pins `concurrency.enabled=false`. That attempt therefore returns in
-ten seconds whenever the worker holds a job. When the worker is idle, cron runs
-the classifier itself. A single node process takes about 1 GB. The cron
-container therefore carries the same 2 GB ceiling as the worker. The entrypoint
-also pins Recognize's low-memory batch sizes (faces 50, imagenet 20, landmarks
-20, movinet 5).
-
-The worker has three of the four cores (`CPUQuota=300%`), the preview generator
-one. The work is sequential by design, imagenet first, faces after.
-
-Nextcloud reserves a background job by writing `reserved_at` on its `oc_jobs`
-row. A job whose process dies keeps that reservation, and the scheduler then
-skips the job for 12 hours. Nothing clears stale reservations
-automatically. A timer that clears them can free a job that a worker still
-processes, and cron then runs that job in parallel. If classification stalls,
-look for an `oc_jobs` row whose `reserved_at` is set and whose worker is
-gone, and clear that column.
-
-The worker installs the app and fetches the models and the node binary (about
-2.9 GB, once). For that reason it starts late on a fresh host.
-
-## Traps in this role
-
-- The four script containers (cron, preview, recognize, push) run a shell as
-  PID 1, which ignores the image's `SIGQUIT`. `RunInit=true` puts catatonit in
-  front, so a pod stop arrives as `SIGTERM`. `SuccessExitStatus=143` says that
-  an exit from that signal is not a failure.
-- The image entrypoint chowns the data and config mount points to `www-data`
-  (uid 33 in the container). That chown fails when the host directory does not
-  belong to the subuid that uid 33 maps to. The entrypoint then exits 23, and
-  the container restarts forever. The role runs `podman unshare chown 33:33`
-  first.
-- A directory in group root has no mapping inside the rootless user
-  namespace, and `podman unshare chown` on it fails with EPERM. Ansible creates
-  the directories with an explicit group.
-- `nextcloud-web` and the job containers carry
-  `Requires=nextcloud-app.service`, so a restart of the app restarts them too.
-  `nextcloud-app` reports healthy (`Notify=healthy`) once php-fpm listens, and
-  nginx starts after that.
-- The image repository name must be lowercase. podman reports the error at
-  pull time only, which looks like a restart loop.
-
-## Monitoring
-
-`monitoring/` holds the log rules and the dashboard that
-`home-server-monitoring` collects. home-server's `JobStale` covers the dump
-metric. The label contract is in its README.
-
-The dashboard follows `home-server-monitoring/README.md`, "Dashboards".
+## Alerts
 
 | Alert | Severity | Fires when |
 |---|---|---|
 | `NextcloudDatabasePanic` | critical | PostgreSQL logged `PANIC` |
 | `NextcloudFatal` | critical | Nextcloud logged level 4 |
-| `NextcloudCronStale` | warning | crond started no `cron.php` in 30 min |
-| `NextcloudErrors` | warning | More than 20 lines of level 3 or higher in 1 h |
-| `Nextcloud5xx` | warning | More than 5 % of more than 50 requests answer 5xx in 10 min |
-| `NextcloudBruteForce` | warning | More than 10 failed logins from one address in 15 min |
-
-## Operations
-
-### Major upgrade
-
-CI builds the listed majors, and the role pins one. The major list is kept by
-hand in two places:
-
-- `versions` in `.github/workflows/build.yml`, which passes each major to
-  `containers/Containerfile` as `NEXTCLOUD_TAG`
-- `nextcloud_service_app_image` in the role defaults. A host follows this one
-  unless its own vars override it.
-
-Add the next major to `versions` and let CI publish it before any host points
-at it. Check with `skopeo inspect docker://ghcr.io/marpogaus/nextcloud:<major>`.
-A tag that CI never published looks like a slow upgrade for the whole
-30-minute install wait.
-
-The upgrade is one way, so take a named rollback point first.
-`btrfs-snapshot@nextcloud.service` names its snapshot by date and skips a day
-that already has one.
-
-```bash
-run0 systemctl start nextcloud-pg-dumpall.service
-run0 btrfs subvolume snapshot -r /var/services/nextcloud /var/services/snapshots/nextcloud/pre-<major>
-```
-
-Change the tag and deploy. The entrypoint runs `occ upgrade`, and the app is
-unreachable while it runs. `occ app:list` names the apps that the new major
-disabled.
-
-To go back, revert the tag and restore the named snapshot. `config.php` records
-the new version, so the old image refuses to start without it. Use
-`home-server/README.md`, "Rolling back", "A service", with
-`/var/services/snapshots/nextcloud/pre-<major>` as the source. Delete the named
-snapshot when the upgrade is good, because retention covers dated names only:
-`run0 btrfs subvolume delete /var/services/snapshots/nextcloud/pre-<major>`.
-
-The role and the image release separately. An entrypoint script runs under
-`set -u`, so remove a key from `nextcloud.env.j2` only after CI publishes the
-image that does not read it.
-
-### Restoring this host's dump
-
-Do this once, before you trust the backups. The functional test proves that the
-dump is complete, not that it restores.
-
-The pod stays up. Every client container stops, because a connected client
-makes `DROP DATABASE` fail. Every role in the dump already exists, so the
-`CREATE ROLE` lines go. With `ON_ERROR_STOP=1` a failed statement fails the
-restore; without it psql exits 0 after every error.
-
-```bash
-CLIENTS="nextcloud-app nextcloud-cron nextcloud-push nextcloud-preview nextcloud-recognize nextcloud-web"
-run0 --user=nextcloud -- systemctl --user stop $CLIENTS
-run0 --user=nextcloud -- bash -c '
-  set -euo pipefail
-  DUMP=/var/services/nextcloud/data/db_dumps/dump-<timestamp>.sql
-  podman exec nextcloud-db psql -v ON_ERROR_STOP=1 -U nextcloud -d postgres -c "DROP DATABASE nextcloud;"
-  sed -E "/^CREATE ROLE /d" "$DUMP" | podman exec -i nextcloud-db psql -v ON_ERROR_STOP=1 -U nextcloud -d postgres -q'
-run0 --user=nextcloud -- systemctl --user start $CLIENTS
-run0 --user=nextcloud -- bash -c 'podman exec -u www-data nextcloud-app php occ files:scan --all'
-```
-
-The dump rewinds the database to midnight while `data/data` stays current, so
-`files:scan --all` is required. A whole-subvolume restore has no such gap.
+| `NextcloudCronStale` | warning | No `cron.php` start in 30 min |
+| `NextcloudErrors` | warning | More than 20 errors in 1 h |
+| `Nextcloud5xx` | warning | Over 5 % of over 50 requests are 5xx in 10 min |
+| `NextcloudBruteForce` | warning | Over 10 failed logins from one address in 15 min |
 
 ## Role contract
 
-The contract is in `home-server-template/README.md`. One point is specific
-here: `vars/main.yml` sets `quadlet_service_pod: nc`, because the pod file is
-`nc.pod`.
-
-## Custom image
-
-`containers/Containerfile` adds ffmpeg and ghostscript and the three app scripts
-(`notify_push.sh`, `previewgenerator.sh`, `recognize-worker.sh`). It adds one
-php-fpm drop-in (`zz-pool.conf`: syslog, and pool sizing and php values from
-the environment) and two `config.php` drop-ins (preview sizes, phone region).
-Every container runs the image's own entrypoint. The app container's command
-is `php-fpm`, which makes the entrypoint install or upgrade
-Nextcloud. The other containers pass their script as the command. GitHub Actions
-builds and signs the image. The cosign policy on the host checks it.
-`cosign.pub` is the public half of the signing key: the build verifies each
-pushed image against it, and
-`cosign verify --key cosign.pub ghcr.io/marpogaus/nextcloud:<major>` checks one
-by hand.
-
-`.github/workflows/build.yml` publishes every major a host runs: the role
-default, and the major a host still pins until its upgrade. `main` publishes
-`:<major>` and `dev` publishes `:<major>-dev`; a host follows `-dev` only when
-its host vars set that tag. Every night the default branch compares, for each
-major, the base image digest that the last build of its own tag recorded as a
-label with the digest `nextcloud:<major>-fpm` carries now, and starts the same
-check on `main`. Each branch rebuilds only the majors whose base moved. "Major
-upgrade" says where a new major goes.
+The contract is in `home-server-template/README.md`. `vars/main.yml` sets
+`quadlet_service_pod: nc`, because the pod file is `nc.pod`.
 
 ## LLM coding tools
 
