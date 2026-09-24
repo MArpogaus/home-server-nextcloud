@@ -20,11 +20,11 @@ nextcloud_service_php_upload_limit: 15G
 
 nextcloud_service_db_dump_retention_days: 30
 
-# README, "Apps".
+# The file activity panels read the admin_audit log.
 nextcloud_service_apps:
   - admin_audit
 
-# README, "Secrets and domains".
+# occ config:import sets these keys on every run and leaves the rest of config.php alone.
 nextcloud_service_config:
   system:
     trusted_domains: "{{ nextcloud_service_trusted_domains.split() }}"

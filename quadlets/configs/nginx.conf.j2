@@ -15,7 +15,7 @@ http {
         text/javascript mjs;
     }
 
-    # README.md, "Access log redaction", limits the fields.
+    # syslog cuts a line at 1024 bytes, and a cut line is not valid JSON.
     log_format json_analytics escape=json '{'
         '"remote_addr": "$remote_addr", '
         '"request_method": "$request_method", '
