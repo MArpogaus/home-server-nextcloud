@@ -61,6 +61,42 @@ Look for them with `journalctl SYSLOG_IDENTIFIER=nextcloud_nginx`,
 `occ` process prints its own progress to the unit's stream, and logs to syslog
 like the rest.
 
+### Access log redaction
+
+nginx writes each request as one JSON object to syslog, and syslog cuts a
+line at 1024 bytes. A cut line is not valid JSON, so every field in
+`log_format` counts against that limit: the dashboards and the 5xx rule parse
+the line with `| json`.
+
+Several paths carry a live credential in the URI. `/s/<token>` opens a public
+share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
+share page fetches thumbnails and files under its own token. Loki keeps 30
+days, so a raw path hands every reader of Grafana a working link.
+`monitoring/alloy-redact.txt` lists one pattern per route, and
+`home-server-monitoring` replaces the token of every match with `<redacted>`
+before a line reaches Loki, for every producer, the proxy included. A second
+pattern redacts `token "…"`, the form in which the audit log names a public
+share.
+
+Rederive the route list from the deployed image after a major version and
+after an app is enabled:
+
+```bash
+grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
+  /var/www/html/{core,apps/*}/appinfo/routes.php
+```
+
+Two more fields can carry a token. A page served from a share sends that URL
+as the Referer of every request it makes. Public WebDAV sends the share token
+as the basic-auth username, which nginx puts in `$remote_user`. Neither field
+is logged at all.
+
+### Dropped lines
+
+Nextcloud's apps read config keys that their config lexicon does not declare,
+and Nextcloud logs one info line per key per request. The line reports nothing,
+so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
+
 ## Configuration
 
 ### Images
@@ -169,7 +205,7 @@ downloads the apps and the Recognize models again. After a suspected compromise,
 empty the directory and let the containers download them again. Do not restore
 around it.
 
-### Logging and app paths
+### App paths
 
 An app lands in `custom_apps` only because `apps.config.php` puts it on
 `apps_paths`. The image copies that file into the mounted config directory
@@ -180,42 +216,6 @@ image's `rsync --delete` then wipes `apps/` on the next version upgrade. The
 role therefore writes nothing into `config/`; it sets every value with `occ`
 after the install. The container scripts ask `occ app:getpath` rather than
 assuming a directory.
-
-### Access log redaction
-
-nginx writes each request as one JSON object to syslog, and syslog cuts a
-line at 1024 bytes. A cut line is not valid JSON, so every field in
-`log_format` counts against that limit: the dashboards and the 5xx rule parse
-the line with `| json`.
-
-Several paths carry a live credential in the URI. `/s/<token>` opens a public
-share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
-share page fetches thumbnails and files under its own token. Loki keeps 30
-days, so a raw path hands every reader of Grafana a working link.
-`monitoring/alloy-redact.txt` lists one pattern per route, and
-`home-server-monitoring` replaces the token of every match with `<redacted>`
-before a line reaches Loki, for every producer, the proxy included. A second
-pattern redacts `token "…"`, the form in which the audit log names a public
-share.
-
-Rederive the route list from the deployed image after a major version and
-after an app is enabled:
-
-```bash
-grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
-  /var/www/html/{core,apps/*}/appinfo/routes.php
-```
-
-Two more fields can carry a token. A page served from a share sends that URL
-as the Referer of every request it makes. Public WebDAV sends the share token
-as the basic-auth username, which nginx puts in `$remote_user`. Neither field
-is logged at all.
-
-### Dropped lines
-
-Nextcloud's apps read config keys that their config lexicon does not declare,
-and Nextcloud logs one info line per key per request. The line reports nothing,
-so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
 
 ## Recognize
 
