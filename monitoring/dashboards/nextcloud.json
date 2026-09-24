@@ -782,7 +782,7 @@
           "sort": "desc"
         }
       },
-      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two.",
+      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two. The push websocket (status 101) stays open for hours and is left out.",
       "id": 10
     },
     {
