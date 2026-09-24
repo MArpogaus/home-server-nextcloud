@@ -1727,7 +1727,7 @@
       },
       "targets": [
         {
-          "expr": "{user_unit=~\"nextcloud-(cron|preview|recognize|push).service\"} != \"Scanning folder\" != \"Waiting for new jobs\"",
+          "expr": "{service=\"nextcloud\", user_unit=~\"nextcloud-(cron|preview|recognize|push)\\\\.service\"} != \"Scanning folder\" != \"Waiting for new jobs\"",
           "legendFormat": "",
           "queryType": "range",
           "refId": "A",
@@ -1777,7 +1777,7 @@
       },
       "targets": [
         {
-          "expr": "{user_unit=~\"nextcloud-(db|redis)\\\\.service\"} |~ \"(?i)error|fatal|warning|panic\"",
+          "expr": "{service=\"nextcloud\", user_unit=~\"nextcloud-(db|redis)\\\\.service\"} |~ \"(?i)error|fatal|warning|panic\"",
           "legendFormat": "",
           "queryType": "range",
           "refId": "A",

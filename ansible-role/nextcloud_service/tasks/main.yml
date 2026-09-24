@@ -133,7 +133,6 @@
       delay: 10
       changed_when: false
 
-    # The image applies NEXTCLOUD_TRUSTED_DOMAINS on first install only.
     - name: Read which apps are enabled
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} app:list --output=json"

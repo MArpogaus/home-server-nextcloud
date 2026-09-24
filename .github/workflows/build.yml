@@ -14,10 +14,10 @@ on:
 
 permissions: {}
 
-# Two runs publishing the same tags would overwrite each other's digest
-# between signing and verification.
+# Two runs on one ref publish the same tags and would overwrite each other's
+# digest between signing and verification.
 concurrency:
-  group: build-${{ github.workflow }}
+  group: build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           # Every major a host runs.
-          versions="34 35"
+          versions="35"
           tags=()
           for t in $versions; do
             if [ "${ONLY_CHANGED}" != "true" ]; then tags+=("$t"); continue; fi

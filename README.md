@@ -56,11 +56,46 @@ syslog. Four programs here open their log by path. All of them write to
   of the image's `/cron.sh`, which writes to `/dev/stdout`.
 
 Look for them with `journalctl SYSLOG_IDENTIFIER=nextcloud_nginx`,
-`=nextcloud-php-fpm` and `=nextcloud`. Each ident starts with the service name,
-because a line written through `/dev/log` inside a container carries no
-`service` label, and a rule tells the services apart by the ident alone. An
+`=nextcloud-php-fpm` and `=nextcloud`. Rules and panels select these lines by
+`service="nextcloud"` and the ident; crond keeps its own ident, `crond`. An
 `occ` process prints its own progress to the unit's stream, and logs to syslog
 like the rest.
+
+### Access log redaction
+
+nginx writes each request as one JSON object to syslog, and syslog cuts a
+line at 1024 bytes. A cut line is not valid JSON, so every field in
+`log_format` counts against that limit: the dashboards and the 5xx rule parse
+the line with `| json`.
+
+Several paths carry a live credential in the URI. `/s/<token>` opens a public
+share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
+share page fetches thumbnails and files under its own token. Loki keeps 30
+days, so a raw path hands every reader of Grafana a working link.
+`monitoring/alloy-redact.txt` lists one pattern per route, and
+`home-server-monitoring` replaces the token of every match with `<redacted>`
+before a line reaches Loki, for every producer, the proxy included. A second
+pattern redacts `token "…"`, the form in which the audit log names a public
+share.
+
+Rederive the route list from the deployed image after a major version and
+after an app is enabled:
+
+```bash
+grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
+  /var/www/html/{core,apps/*}/appinfo/routes.php
+```
+
+Two more fields can carry a token. A page served from a share sends that URL
+as the Referer of every request it makes. Public WebDAV sends the share token
+as the basic-auth username, which nginx puts in `$remote_user`. Neither field
+is logged at all.
+
+### Dropped lines
+
+Nextcloud's apps read config keys that their config lexicon does not declare,
+and Nextcloud logs one info line per key per request. The line reports nothing,
+so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
 
 ## Configuration
 
@@ -83,9 +118,11 @@ app, cron, preview and Recognize, 768M for the database, and 128M for redis,
 web and push. Recognize and the preview generator also carry a `CPUQuota=`.
 
 The ceilings add up to more than the host has. They are limits, not
-reservations, and the two heavy jobs are bursty. PHP's `max_children` times
-`memory_limit` is the real budget. If you override one without the other, the
-deployment breaks.
+reservations, and the two heavy jobs are bursty. The app's 2G ceiling is the
+budget for PHP: `max_children` times `memory_limit` (8 × 512M) can pass it,
+because a worker rarely uses its whole limit. When the workers and `/tmp`
+together pass 2G, the kernel kills the largest PHP worker, and its request
+answers 502.
 
 ### Apps
 
@@ -169,7 +206,7 @@ downloads the apps and the Recognize models again. After a suspected compromise,
 empty the directory and let the containers download them again. Do not restore
 around it.
 
-### Logging and app paths
+### App paths
 
 An app lands in `custom_apps` only because `apps.config.php` puts it on
 `apps_paths`. The image copies that file into the mounted config directory
@@ -180,42 +217,6 @@ image's `rsync --delete` then wipes `apps/` on the next version upgrade. The
 role therefore writes nothing into `config/`; it sets every value with `occ`
 after the install. The container scripts ask `occ app:getpath` rather than
 assuming a directory.
-
-### Access log redaction
-
-nginx writes each request as one JSON object to syslog, and syslog cuts a
-line at 1024 bytes. A cut line is not valid JSON, so every field in
-`log_format` counts against that limit: the dashboards and the 5xx rule parse
-the line with `| json`.
-
-Several paths carry a live credential in the URI. `/s/<token>` opens a public
-share, `/lostpassword/reset/form/<token>/<uid>` resets a password, and the
-share page fetches thumbnails and files under its own token. Loki keeps 30
-days, so a raw path hands every reader of Grafana a working link.
-`monitoring/alloy-redact.txt` lists one pattern per route, and
-`home-server-monitoring` replaces the token of every match with `<redacted>`
-before a line reaches Loki, for every producer, the proxy included. A second
-pattern redacts `token "…"`, the form in which the audit log names a public
-share.
-
-Rederive the route list from the deployed image after a major version and
-after an app is enabled:
-
-```bash
-grep -rhoE "'url' *=> *'[^']*\{token\}[^']*'" \
-  /var/www/html/{core,apps/*}/appinfo/routes.php
-```
-
-Two more fields can carry a token. A page served from a share sends that URL
-as the Referer of every request it makes. Public WebDAV sends the share token
-as the basic-auth username, which nginx puts in `$remote_user`. Neither field
-is logged at all.
-
-### Dropped lines
-
-Nextcloud's apps read config keys that their config lexicon does not declare,
-and Nextcloud logs one info line per key per request. The line reports nothing,
-so `monitoring/alloy-drop.txt` drops it, and every other info line reaches Loki.
 
 ## Recognize
 
@@ -259,11 +260,10 @@ The worker installs the app and fetches the models and the node binary (about
 - A directory in group root has no mapping inside the rootless user
   namespace, and `podman unshare chown` on it fails with EPERM. Ansible creates
   the directories with an explicit group.
-- `Requires=nextcloud-app.service` on `nextcloud-web` stops the web container
-  when you restart the app by hand, and it does not start the web container
-  again. The role restarts the pod, not single containers. `nextcloud-app`
-  reports healthy (`Notify=healthy`) once php-fpm listens, and nginx starts
-  after that. The job containers carry the same `Requires=`.
+- `nextcloud-web` and the job containers carry
+  `Requires=nextcloud-app.service`, so a restart of the app restarts them too.
+  `nextcloud-app` reports healthy (`Notify=healthy`) once php-fpm listens, and
+  nginx starts after that.
 - The image repository name must be lowercase. podman reports the error at
   pull time only, which looks like a restart loop.
 
