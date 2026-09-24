@@ -16,6 +16,4 @@ RUN set -ex; \
 COPY --chmod=0755 context/scripts/notify_push.sh /notify_push.sh
 COPY --chmod=0755 context/scripts/previewgenerator.sh /previewgenerator.sh
 COPY --chmod=0755 context/scripts/recognize-worker.sh /recognize-worker.sh
-COPY context/configs/prev.config.php /usr/src/nextcloud/config/
-COPY context/configs/phone.config.php /usr/src/nextcloud/config/
 COPY context/configs/zz-pool.conf /usr/local/etc/php-fpm.d/

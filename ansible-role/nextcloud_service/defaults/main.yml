@@ -37,6 +37,10 @@ nextcloud_service_config:
     syslog_tag_audit: nextcloud
     loglevel: 1
     log.condition: {apps: [admin_audit]}
+    default_phone_region: DE
+    preview_max_x: 4096
+    preview_max_y: 4096
+    preview_max_scale_factor: 1
   apps:
     notify_push:
       base_endpoint: "{{ nextcloud_service_url }}/push"
