@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           # Every major a host runs.
-          versions="34 35"
+          versions="35"
           tags=()
           for t in $versions; do
             if [ "${ONLY_CHANGED}" != "true" ]; then tags+=("$t"); continue; fi
