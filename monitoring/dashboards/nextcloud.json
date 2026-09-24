@@ -800,7 +800,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (client) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
+          "expr": "sum by (client) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | __error__=\"\" | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
           "legendFormat": "{{client}}",
           "queryType": "range",
           "refId": "A",
