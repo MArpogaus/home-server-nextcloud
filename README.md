@@ -120,8 +120,9 @@ web and push. Recognize and the preview generator also carry a `CPUQuota=`.
 The ceilings add up to more than the host has. They are limits, not
 reservations, and the two heavy jobs are bursty. The app's 2G ceiling is the
 budget for PHP: `max_children` times `memory_limit` (8 × 512M) can pass it,
-because a worker rarely uses its whole limit. When the workers together pass
-2G, the kernel kills the app container.
+because a worker rarely uses its whole limit. When the workers and `/tmp`
+together pass 2G, the kernel kills the largest PHP worker, and its request
+answers 502.
 
 ### Apps
 
