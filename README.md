@@ -75,9 +75,9 @@ largest worker and its request answers 502.
 ## Custom image
 
 `containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts and a
-php-fpm pool drop-in to `nextcloud:<major>-fpm`. The role sets every
-`config.php` value with `occ`, because the image copies its config files only
-into an empty config directory.
+php-fpm pool drop-in to `nextcloud:<major>-fpm`. The role sets its own
+`config.php` values with `occ` (`nextcloud_service_config`), because the image
+copies its config files only into an empty config directory.
 The entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
 containers pass their script. `.github/workflows/build.yml` builds and signs
 each major in `versions`, and rebuilds when the base image changes. `main`
