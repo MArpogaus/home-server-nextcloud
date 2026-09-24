@@ -56,9 +56,8 @@ syslog. Four programs here open their log by path. All of them write to
   of the image's `/cron.sh`, which writes to `/dev/stdout`.
 
 Look for them with `journalctl SYSLOG_IDENTIFIER=nextcloud_nginx`,
-`=nextcloud-php-fpm` and `=nextcloud`. Each ident starts with the service name,
-because a line written through `/dev/log` inside a container carries no
-`service` label, and a rule tells the services apart by the ident alone. An
+`=nextcloud-php-fpm` and `=nextcloud`. Rules and panels select these lines by
+`service="nextcloud"` and the ident; crond keeps its own ident, `crond`. An
 `occ` process prints its own progress to the unit's stream, and logs to syslog
 like the rest.
 
