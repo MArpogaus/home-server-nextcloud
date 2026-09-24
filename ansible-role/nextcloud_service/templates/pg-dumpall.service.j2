@@ -8,4 +8,4 @@ TimeoutStartSec=1h
 # The dump runs in the user manager, so ExecStopPost reaps it after a timeout.
 ExecStart=systemd-inhibit --what=shutdown --who={{ service_name }}-pg-dumpall --why="database dump in progress" systemd-run --machine={{ service_name }}@ --user --unit=pg-dumpall-run --wait --pipe --collect {{ service_home }}/bin/pre-snapshot-pg-dump.sh
 ExecStartPost=/usr/bin/bash -c "cd /var/lib/node-textfile && echo 'dump_last_success_timestamp_seconds{service=\"{{ service_name }}\"}' $$(date +%%s) > dump-{{ service_name }}.tmp && mv dump-{{ service_name }}.tmp dump-{{ service_name }}.prom"
-ExecStopPost=-/usr/bin/systemctl --machine={{ service_name }}@ --user stop pg-dumpall-run.service
+ExecStopPost=-/usr/bin/bash -c "[ \"$$SERVICE_RESULT\" = success ] || systemctl --machine={{ service_name }}@ --user stop pg-dumpall-run.service"

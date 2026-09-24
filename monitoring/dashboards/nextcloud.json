@@ -131,7 +131,7 @@
       },
       "targets": [
         {
-          "expr": "quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [1h]) by (job)",
+          "expr": "quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [1h]) by (job)",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A",
@@ -688,7 +688,7 @@
       },
       "targets": [
         {
-          "expr": "label_replace(quantile_over_time(0.5, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.5, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"p50 \u2013 median\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "A",
@@ -698,7 +698,7 @@
           }
         },
         {
-          "expr": "label_replace(quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
+          "expr": "label_replace(quantile_over_time(0.95, {service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"p95\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "B",
@@ -708,7 +708,7 @@
           }
         },
         {
-          "expr": "label_replace(max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
+          "expr": "label_replace(max_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json | __error__=\"\" | request_uri != \"/status.php\" | status != \"101\" | unwrap request_time [$__auto]) by (job), \"series\", \"max \u2013 slowest request\", \"\", \"\")",
           "legendFormat": "{{series}}",
           "queryType": "range",
           "refId": "C",
@@ -782,7 +782,7 @@
           "sort": "desc"
         }
       },
-      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two.",
+      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two. The push websocket (status 101) stays open for hours and is left out.",
       "id": 10
     },
     {
@@ -800,7 +800,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (client) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
+          "expr": "sum by (client) (count_over_time({service=\"nextcloud\", syslog_identifier=\"nextcloud_nginx\"} | json request_uri, http_user_agent | __error__=\"\" | request_uri != \"/status.php\" | label_format client=`{{ $a := .http_user_agent }}{{ if contains \"mirall\" $a }}desktop{{ else if contains \"Nextcloud-android\" $a }}android{{ else if contains \"Nextcloud-iOS\" $a }}ios{{ else if contains \"DAVx5\" $a }}DAVx5{{ else if contains \"Thunderbird\" $a }}Thunderbird{{ else if contains \"Mozilla\" $a }}browser{{ else }}other{{ end }}` [$__auto]))",
           "legendFormat": "{{client}}",
           "queryType": "range",
           "refId": "A",

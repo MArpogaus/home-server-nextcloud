@@ -380,6 +380,13 @@ label with the digest `nextcloud:<major>-fpm` carries now, and starts the same
 check on `main`. Each branch rebuilds only the majors whose base moved. "Major
 upgrade" says where a new major goes.
 
+## LLM coding tools
+
+This project is developed with LLM-based coding tools. They write most of the
+code and documentation. The maintainer sets the goals and the design, reviews
+every change and is responsible for it. Changes are tested on a VM before they
+reach a host.
+
 ## License
 
 MIT
