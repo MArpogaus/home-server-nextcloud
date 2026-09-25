@@ -6,8 +6,8 @@ After=nextcloud-db.service nextcloud-redis.service
 Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-app
 EnvironmentFile=./configs/nextcloud.env
-Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
-Secret=nextcloud_service_admin_password,type=mount,target=/run/secrets/nextcloud_service_admin_password
+Secret=nextcloud_service_db_password
+Secret=nextcloud_service_admin_password
 # rsync/chown of the tree, then php-fpm forks www-data workers and signals them.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID KILL
 Memory=2G

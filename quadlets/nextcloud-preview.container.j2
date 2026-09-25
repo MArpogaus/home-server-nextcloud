@@ -6,7 +6,7 @@ After=nextcloud-app.service
 Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-preview
 EnvironmentFile=./configs/nextcloud.env
-Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+Secret=nextcloud_service_db_password
 # runuser and crond switch to www-data.
 AddCapability=SETGID SETUID
 Memory=2G
