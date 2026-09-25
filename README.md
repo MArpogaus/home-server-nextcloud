@@ -1,7 +1,7 @@
 # home-server-nextcloud
 
-This project deploys Nextcloud as the rootless Podman pod `nc` and builds its
-signed app image. `home-server-bunker` puts the pod on the internet.
+This project deploys Nextcloud as the rootless Podman pod `nextcloud` and builds
+its signed app image. `home-server-bunker` puts the pod on the internet.
 
 | Container | Job | Memory ceiling |
 |---|---|---|
