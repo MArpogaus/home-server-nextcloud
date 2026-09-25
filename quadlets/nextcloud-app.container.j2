@@ -1,5 +1,5 @@
 [Unit]
-Requires=nextcloud-db.service nextcloud-redis.service
+Wants=nextcloud-db.service nextcloud-redis.service
 After=nextcloud-db.service nextcloud-redis.service
 
 [Container]
