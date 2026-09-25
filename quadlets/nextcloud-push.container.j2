@@ -25,4 +25,6 @@ HealthStartPeriod=120s
 HealthOnFailure=kill
 
 [Service]
+# Creating the container relabels the data volume (:z), which takes 30-40 s.
+TimeoutStartSec=300
 SuccessExitStatus=143
