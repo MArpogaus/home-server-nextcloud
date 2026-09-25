@@ -10,26 +10,19 @@
     quiet: true
 
 # An existing data or config dir belongs to a subuid Ansible cannot write through.
-- name: Check which service directories exist
-  ansible.builtin.stat:
+# As the service user and without owner or mode: a new directory belongs to it,
+# and one the containers own already stays as it is.
+- name: Create the service directories  # noqa: risky-file-permissions
+  ansible.builtin.file:
     path: "{{ service_home }}/{{ item }}"
+    state: directory
   loop:
     - data/db_data
     - data/data
     - data/config
     - bin
-  register: nextcloud_service_dirs
-
-- name: Create the missing service directories
-  ansible.builtin.file:
-    path: "{{ service_home }}/{{ item.item }}"
-    state: directory
-    owner: "{{ service_name }}"
-    group: "{{ service_name }}"
-    mode: '0755'
-  loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
-  loop_control:
-    label: "{{ item.item }}"
+  become: true
+  become_user: "{{ service_name }}"
 
 - name: Create custom_apps as a nested Btrfs subvolume
   ansible.builtin.shell:
