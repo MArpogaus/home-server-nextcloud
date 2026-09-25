@@ -100,8 +100,7 @@ embeds the same key for the host's `policy.json`, so a new key goes into both.
 
 ## Role contract
 
-The contract is in `home-server-template/README.md`. `vars/main.yml` sets
-`quadlet_service_pod: nc`, because the pod file is `nc.pod`.
+The contract is in `home-server-template/README.md`.
 
 ## LLM coding tools
 

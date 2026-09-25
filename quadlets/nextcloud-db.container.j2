@@ -7,7 +7,7 @@ Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
 # the entrypoint fixes the data dir, then gosu postgres.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
 Memory=768M
-Pod=nc.pod
+Pod=nextcloud.pod
 HealthCmd=pg_isready -U nextcloud
 HealthInterval=30s
 HealthStartPeriod=60s

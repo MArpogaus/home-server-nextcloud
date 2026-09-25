@@ -4,7 +4,7 @@ ContainerName=nextcloud-redis
 # chown of /data, then gosu redis.
 AddCapability=CHOWN SETGID SETUID
 Memory=128M
-Pod=nc.pod
+Pod=nextcloud.pod
 HealthCmd=redis-cli ping
 HealthInterval=30s
 HealthOnFailure=kill

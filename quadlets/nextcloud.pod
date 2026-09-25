@@ -1,4 +1,4 @@
 [Pod]
-PodName=nc
+PodName=nextcloud
 # Loopback only. BunkerWeb reaches it through pasta --map-host-loopback.
 PublishPort=127.0.0.1:8080:80
