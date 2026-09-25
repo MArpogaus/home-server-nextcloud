@@ -8,7 +8,7 @@ occ() {
 occ app:install recognize || occ app:enable recognize
 APP_DIR="$(occ app:getpath recognize)"
 
-# Low-memory profile; README, Recognize.
+# Low-memory profile; README, "Specifics".
 for kv in concurrency.enabled=false faces.batchSize=50 imagenet.batchSize=20 landmarks.batchSize=20 movinet.batchSize=5; do
 	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
 done

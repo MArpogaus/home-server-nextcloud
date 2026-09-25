@@ -113,7 +113,7 @@
           "fields": ""
         }
       },
-      "description": "Requests that reached Nextcloud's nginx in the last hour, health checks excluded.",
+      "description": "Requests that reached nginx in the last hour, health checks excluded.",
       "id": 2
     },
     {
@@ -177,7 +177,7 @@
           "fields": ""
         }
       },
-      "description": "95 % of requests in the last hour were faster than this. Sync clients poll cheaply; the web UI and previews are the slow part.",
+      "description": "95 % of requests in the last hour were faster than this.",
       "id": 3
     },
     {
@@ -235,7 +235,7 @@
           "fields": ""
         }
       },
-      "description": "Errors nginx answered, mostly php-fpm timeouts (504) or a full worker pool (502).",
+      "description": "Errors nginx answered in the last hour, mostly 504 timeouts or 502 from a full worker pool.",
       "id": 4
     },
     {
@@ -297,7 +297,7 @@
           "fields": ""
         }
       },
-      "description": "Wrong password or unknown user. NextcloudBruteForce alerts on more than 10 from one address in 15 minutes.",
+      "description": "Failed logins, wrong password or unknown user.",
       "id": 5
     },
     {
@@ -355,7 +355,7 @@
           "fields": ""
         }
       },
-      "description": "Nextcloud log level 2 warning, 3 error, 4 fatal. The table below splits them by app.",
+      "description": "Nextcloud log entries at level 2 warning and above.",
       "id": 6
     },
     {
@@ -413,7 +413,7 @@
           "fields": ""
         }
       },
-      "description": "Every hit means requests queued. Raise nextcloud_service_php_max_children if this is not zero at quiet times.",
+      "description": "Every hit means queued requests; raise nextcloud_service_php_max_children if it is not zero at quiet times.",
       "id": 7
     },
     {
@@ -471,7 +471,7 @@
           "fields": ""
         }
       },
-      "description": "Background jobs start from cron.php every 5 minutes. NextcloudCronStale alerts after 30 minutes without a run.",
+      "description": "cron.php runs in the last 30 minutes; it starts every 5 minutes.",
       "id": 26
     },
     {
@@ -529,7 +529,7 @@
           "fields": ""
         }
       },
-      "description": "PostgreSQL PANIC lines plus Nextcloud fatal log entries. NextcloudDatabasePanic and NextcloudFatal alert on each.",
+      "description": "PostgreSQL PANIC lines plus Nextcloud fatal log entries.",
       "id": 27
     },
     {
@@ -670,7 +670,7 @@
           "sort": "desc"
         }
       },
-      "description": "2xx ok, 3xx redirects and 304 not-modified, 4xx includes 401 from clients renewing their session, 5xx errors. Counted per interval.",
+      "description": "Requests per interval by status class; 4xx includes 401 from clients that renew their session.",
       "id": 9
     },
     {
@@ -782,7 +782,7 @@
           "sort": "desc"
         }
       },
-      "description": "nginx request_time per interval. The median and p95 carry the shape of normal traffic. The dashed maximum is one request, usually an upload or a preview, so read it apart from the other two. The push websocket (status 101) stays open for hours and is left out.",
+      "description": "Median, p95 and maximum nginx request_time; the push websocket is left out.",
       "id": 10
     },
     {
@@ -849,7 +849,7 @@
           "sort": "desc"
         }
       },
-      "description": "Requests per interval by user agent family. The desktop client polls every 30 s, so it dominates when nobody is active.",
+      "description": "Requests per interval by user agent family.",
       "id": 11
     },
     {
@@ -916,7 +916,7 @@
           "sort": "desc"
         }
       },
-      "description": "Payload nginx sent, from the access log, totalled per bar like the other two count panels in this row. Downloads and photo previews make the peaks. The legend column is the total over the selected range.",
+      "description": "Bytes nginx sent per interval; the legend shows the total over the range.",
       "id": 12
     },
     {
@@ -1000,7 +1000,7 @@
           "show": false
         }
       },
-      "description": "First two path segments. /remote.php/dav is sync and CalDAV, /ocs is the client API, /apps/... the web UI.",
+      "description": "Requests by the first two path segments.",
       "transformations": [
         {
           "id": "organize",
@@ -1085,7 +1085,7 @@
           "show": false
         }
       },
-      "description": "Client address from X-Real-IP, which BunkerWeb sets; local requests show remote_addr.",
+      "description": "Client address from X-Real-IP, or remote_addr for local requests.",
       "transformations": [
         {
           "id": "organize",
@@ -1198,7 +1198,7 @@
           "show": false
         }
       },
-      "description": "Warnings and errors per Nextcloud app over the dashboard range. The logs panel below has the messages.",
+      "description": "Warnings and errors per Nextcloud app over the dashboard range.",
       "transformations": [
         {
           "id": "organize",
@@ -1291,7 +1291,7 @@
           "sort": "desc"
         }
       },
-      "description": "Every action the audit app recorded, by kind: File written, File deleted, File renamed, Login successful and so on. Needs nextcloud_service_apps to include admin_audit.",
+      "description": "Actions the audit app recorded, by kind; needs admin_audit in nextcloud_service_apps.",
       "id": 18
     },
     {
@@ -1347,7 +1347,7 @@
           "show": false
         }
       },
-      "description": "Who did how much of what over the dashboard range. `--` is a background job or the command line, not a person.",
+      "description": "Actions per user over the dashboard range; `--` is a background job or the command line.",
       "transformations": [
         {
           "id": "organize",
@@ -1411,7 +1411,7 @@
         "enableLogDetails": true,
         "prettifyLogMessage": false
       },
-      "description": "Writes, deletes, renames and shares with the user that caused them. Reads are left out: preview generation and sync clients read constantly.",
+      "description": "Writes, deletes, renames and shares with the user that caused them; reads are left out.",
       "id": 20
     },
     {
@@ -1503,7 +1503,7 @@
           "show": false
         }
       },
-      "description": "Every authenticated request logs in, so a syncing client counts once per request. A known user from an unknown address is the line to read.",
+      "description": "Successful logins; a syncing client counts once per request.",
       "transformations": [
         {
           "id": "merge",
@@ -1578,7 +1578,7 @@
           "show": false
         }
       },
-      "description": "Links created and removed, by file, and public links opened or downloaded, by owner. The log names an opened link by its token, which the dashboard does not show.",
+      "description": "Public links created, removed, opened and downloaded; tokens are not shown.",
       "transformations": [
         {
           "id": "merge",
@@ -1709,7 +1709,7 @@
         "enableLogDetails": true,
         "prettifyLogMessage": false
       },
-      "description": "Nextcloud's own log at level warning and above, one line per entry. Expand a line for the full JSON (user, URL, exception).",
+      "description": "Nextcloud log entries at level warning and above; expand a line for the full JSON.",
       "id": 23
     },
     {
@@ -1759,7 +1759,7 @@
         "enableLogDetails": true,
         "prettifyLogMessage": false
       },
-      "description": "Output of the four helper containers. Recognize logs each classified batch; the preview generator each folder it finished.",
+      "description": "Output of the cron, preview, recognize and push containers.",
       "id": 24
     },
     {
@@ -1809,7 +1809,7 @@
         "enableLogDetails": true,
         "prettifyLogMessage": false
       },
-      "description": "PostgreSQL and redis, warnings and up. Empty is normal.",
+      "description": "PostgreSQL and redis at warning and above; empty is normal.",
       "id": 25
     }
   ]
