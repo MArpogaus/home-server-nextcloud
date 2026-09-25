@@ -1,12 +1,11 @@
 [Unit]
-Requires=nextcloud-app.service
 After=nextcloud-app.service
 
 [Container]
 Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-preview
 EnvironmentFile=./configs/nextcloud.env
-Secret=nextcloud_service_db_password,type=mount,target=/run/secrets/nextcloud_service_db_password
+Secret=nextcloud_service_db_password
 # runuser and crond switch to www-data.
 AddCapability=SETGID SETUID
 Memory=2G
@@ -15,11 +14,12 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
-Pod=nc.pod
 Exec=/previewgenerator.sh
 RunInit=true
 StopSignal=SIGTERM
 
 [Service]
+# Creating the container relabels the data volume (:z); the time grows with the data.
+TimeoutStartSec=300
 CPUQuota=100%
 SuccessExitStatus=143

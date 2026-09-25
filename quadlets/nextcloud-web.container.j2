@@ -1,5 +1,4 @@
 [Unit]
-Requires=nextcloud-app.service
 After=nextcloud-app.service
 
 [Container]
@@ -13,7 +12,6 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:ro,z
 Volume=./configs/nginx.conf:/etc/nginx/nginx.conf:ro,z
 Volume=/dev/log:/dev/log
 Exec=nginx -e stderr -g "daemon off;"
-Pod=nc.pod
 HealthCmd=wget -qO /dev/null http://127.0.0.1/status.php
 HealthInterval=60s
 HealthStartPeriod=30s

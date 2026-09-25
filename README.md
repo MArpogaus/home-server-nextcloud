@@ -1,7 +1,7 @@
 # home-server-nextcloud
 
-This project deploys Nextcloud as the rootless Podman pod `nc` and builds its
-signed app image. `home-server-bunker` puts the pod on the internet.
+This project deploys Nextcloud as the rootless Podman pod `nextcloud` and builds
+its signed app image. `home-server-bunker` puts the pod on the internet.
 
 | Container | Job | Memory ceiling |
 |---|---|---|
@@ -100,8 +100,7 @@ embeds the same key for the host's `policy.json`, so a new key goes into both.
 
 ## Role contract
 
-The contract is in `home-server-template/README.md`. `vars/main.yml` sets
-`quadlet_service_pod: nc`, because the pod file is `nc.pod`.
+The contract is in `home-server-template/README.md`.
 
 ## LLM coding tools
 
