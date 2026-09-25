@@ -6,7 +6,7 @@
       - nextcloud_service_admin_password | length > 0
     fail_msg: >-
       Set nextcloud_service_db_password and nextcloud_service_admin_password in
-      secrets/vars.<name>.yml. Nextcloud installs with empty passwords without complaint.
+      host_vars/<host>.yml. Nextcloud installs with empty passwords without complaint.
     quiet: true
 
 # An existing data or config dir belongs to a subuid Ansible cannot write through.
