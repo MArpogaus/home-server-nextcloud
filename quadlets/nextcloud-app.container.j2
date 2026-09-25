@@ -18,7 +18,6 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
-Pod=nextcloud.pod
 HealthCmd=bash -c "exec 3<>/dev/tcp/127.0.0.1/9000"
 HealthInterval=10s
 HealthStartPeriod=60s
