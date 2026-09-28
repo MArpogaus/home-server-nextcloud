@@ -1,14 +1,4 @@
 ---
-- name: Assert the Nextcloud passwords are set
-  ansible.builtin.assert:
-    that:
-      - nextcloud_service_db_password | length > 0
-      - nextcloud_service_admin_password | length > 0
-    fail_msg: >-
-      Set nextcloud_service_db_password and nextcloud_service_admin_password in
-      host_vars/<host>.yml. Nextcloud installs with empty passwords without complaint.
-    quiet: true
-
 # An existing data or config dir belongs to a subuid Ansible cannot write through.
 # As the service user and without owner or mode: a new directory belongs to it,
 # and one the containers own already stays as it is.
@@ -36,31 +26,16 @@
     path: "{{ service_home }}/data/custom_apps"
     mode: '0755'
 
-- name: Prepare the directories and secrets as the service user
+- name: Own the Nextcloud data and config dirs as the container www-data user
+  ansible.builtin.command:
+    cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+  loop:
+    - data
+    - config
+    - custom_apps
   become: true
   become_user: "{{ service_name }}"
-  block:
-    - name: Own the Nextcloud data and config dirs as the container www-data user
-      ansible.builtin.command:
-        cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
-      loop:
-        - data
-        - config
-        - custom_apps
-      changed_when: false
-
-    - name: Create the podman secrets
-      ansible.builtin.command:
-        cmd: podman secret create {{ item.name }} -
-        stdin: "{{ item.value }}"
-        stdin_add_newline: false
-      loop: "{{ nextcloud_service_secrets }}"
-      loop_control:
-        label: "{{ item.name }}"
-      register: nextcloud_service_secret_create
-      changed_when: nextcloud_service_secret_create.rc == 0
-      failed_when: nextcloud_service_secret_create.rc != 0 and 'in use' not in nextcloud_service_secret_create.stderr
-      no_log: true
+  changed_when: false
 
 - name: Deploy pre-snapshot pg_dumpall script
   ansible.builtin.template:
@@ -151,8 +126,8 @@
       when: item not in (nextcloud_service_app_list.stdout | from_json).enabled
       changed_when: true
 
-    - name: Apply the settings the role owns
+    - name: Apply the merged config.php settings
       ansible.builtin.command:
         cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
-        stdin: "{{ nextcloud_service_config | to_json }}"
+        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
       changed_when: false

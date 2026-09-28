@@ -6,7 +6,6 @@ Image={{ nextcloud_service_nginx_image }}
 ContainerName=nextcloud-web
 # nginx binds :80 and forks nginx workers.
 AddCapability=CHOWN NET_BIND_SERVICE SETGID SETUID
-Memory=128M
 Volume=nc-app-html:/var/www/html:ro,z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:ro,z
 Volume=./configs/nginx.conf:/etc/nginx/nginx.conf:ro,z

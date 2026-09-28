@@ -3,7 +3,7 @@
 This project deploys Nextcloud as the rootless Podman pod `nextcloud` and builds
 its signed app image. `home-server-bunker` puts the pod on the internet.
 
-| Container | Job | Memory ceiling |
+| Container | Job | Default memory ceiling |
 |---|---|---|
 | nextcloud-db | PostgreSQL | 768M |
 | nextcloud-redis | Cache | 128M |
@@ -16,24 +16,31 @@ its signed app image. `home-server-bunker` puts the pod on the internet.
 
 ## Configuration
 
+The service follows the configuration interface in
+`home-server-template/README.md`, "Configuration interface".
 `ansible-role/nextcloud_service/defaults/main.yml` has the full list.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `nextcloud_service_db_password`, `_admin_password` | empty | Required |
+| `nextcloud_service_hostname` | required | The public hostname; the URL and the first trusted domain |
+| `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
+| `nextcloud_service_config` | `{}` | `config.php` keys, merged over `nextcloud_service_config_defaults` and set on every run |
+| `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
-| `nextcloud_service_trusted_domains` | `cloud.example.com` | Space-separated; the first one is the URL |
 | `nextcloud_service_trusted_proxies` | loopback, RFC1918, link-local | The proxy's traffic arrives through the host |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
 | `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
 | `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
 | `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
-| `nextcloud_service_config` | see defaults | Keys set on every run |
 
-The app's `Memory=2G` is the PHP budget. `max_children` × `memory_limit` can
-pass it; when the workers and `/tmp` together reach 2G, the kernel kills the
-largest worker and its request answers 502.
+The config can change every key, including the URL. More trusted domains: set
+`system.trusted_domains` in `nextcloud_service_config`. A list replaces the
+default list.
+
+The app's memory ceiling (2G) is the PHP budget. `max_children` ×
+`memory_limit` can pass it; when the workers and `/tmp` together reach it, the
+kernel kills the largest worker and its request answers 502.
 
 ## Specifics
 
@@ -46,7 +53,7 @@ largest worker and its request answers 502.
 - The role writes nothing into `config/` before the first start. The image
   copies `apps.config.php` (`apps_paths`) only into an empty directory;
   without it, apps land in `apps/`, which an upgrade wipes.
-- `occ config:import` sets `nextcloud_service_config` on every run. The image
+- `occ config:import` sets the merged config keys on every run. The image
   applies `NEXTCLOUD_TRUSTED_DOMAINS` at the first install only.
 - `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
   out of backups. Its mode is `0755`, because nginx must traverse it.
@@ -75,9 +82,10 @@ largest worker and its request answers 502.
 ## Custom image
 
 `containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts and a
-php-fpm pool drop-in to `nextcloud:<major>-fpm`. The role sets its own
-`config.php` values with `occ` (`nextcloud_service_config`), because the image
-copies its config files only into an empty config directory.
+php-fpm pool drop-in to `nextcloud:<major>-fpm`. The role sets its
+`config.php` values with `occ` (`nextcloud_service_config_defaults` merged
+with `nextcloud_service_config`), because the image copies its config files
+only into an empty config directory.
 The entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
 containers pass their script. `.github/workflows/build.yml` builds and signs
 each major in `versions`, and rebuilds when the base image changes. `main`
