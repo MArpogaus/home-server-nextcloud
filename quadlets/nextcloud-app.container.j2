@@ -9,7 +9,6 @@ Secret=nextcloud_service_db_password
 Secret=nextcloud_service_admin_password
 # rsync/chown of the tree, then php-fpm forks www-data workers and signals them.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID KILL
-Memory=2G
 # exec: Nextcloud runs helpers from /tmp. size: the tmpfs counts against Memory=.
 Tmpfs=/tmp:exec,size=512M
 Volume=nc-app-html:/var/www/html:z
