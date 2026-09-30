@@ -76,11 +76,11 @@
     mode: '0644'
   notify: Reload systemd
 
-# The deploy time stands in for the first dump, so a dump that never succeeds
-# alerts 30 h after the deploy.
+# The deploy time stands in for the first success, so a job that never
+# succeeds alerts 30 h after the deploy.
 - name: Seed the dump freshness metric
   ansible.builtin.copy:
-    dest: /var/lib/node-textfile/dump-{{ service_name }}.prom
+    dest: "{{ base_setup_textfile_dir }}/dump-{{ service_name }}.prom"
     content: |
       dump_last_success_timestamp_seconds{service="{{ service_name }}"} {{ ansible_facts.date_time.epoch }}
     owner: root
