@@ -97,8 +97,8 @@
   become_user: "{{ service_name }}"
   block:
     # Notify=healthy makes the unit active only once php-fpm listens, which is
-    # after the entrypoint's install or upgrade. As long as the app unit's
-    # TimeoutStartSec.
+    # after the entrypoint's install or upgrade. The wait, 180 × 10 s, matches
+    # the app unit's TimeoutStartSec.
     - name: Wait for the app container to become healthy
       ansible.builtin.systemd_service:
         name: nextcloud-app.service
