@@ -1,6 +1,4 @@
 ---
-# The service user owns its home, so it creates everything in it: a symlink it
-# put there reaches only what it may write anyway.
 - name: Prepare the service home as the service user
   become: true
   become_user: "{{ service_name }}"
