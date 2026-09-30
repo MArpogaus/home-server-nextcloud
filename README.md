@@ -27,7 +27,6 @@ The service follows the configuration interface in
 | `nextcloud_service_config` | `{}` | `config.php` keys, merged over `nextcloud_service_config_defaults` |
 | `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
-| `nextcloud_service_trusted_proxies` | loopback, RFC1918, link-local | The proxy's traffic arrives through the host |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
 | `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
