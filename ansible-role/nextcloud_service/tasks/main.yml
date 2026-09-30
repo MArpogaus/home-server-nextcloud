@@ -25,15 +25,11 @@
       loop_control:
         label: "{{ item.item }}"
 
-    - name: Create custom_apps as a nested Btrfs subvolume
-      ansible.builtin.command:
-        cmd: btrfs subvolume create {{ service_home }}/data/custom_apps
+    # nginx traverses it. After the chown below the user can no longer chmod it.
+    - name: Create custom_apps as a traversable nested Btrfs subvolume
+      ansible.builtin.shell:
+        cmd: btrfs subvolume create {{ service_home }}/data/custom_apps && chmod 0755 {{ service_home }}/data/custom_apps
         creates: "{{ service_home }}/data/custom_apps"
-
-    - name: Keep custom_apps traversable
-      ansible.builtin.file:
-        path: "{{ service_home }}/data/custom_apps"
-        mode: '0755'
 
     - name: Own the Nextcloud data and config dirs as the container www-data user
       ansible.builtin.command:
