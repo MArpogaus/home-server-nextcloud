@@ -23,7 +23,7 @@
       loop_control:
         label: "{{ item.item }}"
 
-    # nginx traverses it. After the chown below the user can no longer chmod it.
+    # After the chown below the user can no longer chmod it.
     - name: Create custom_apps as a traversable nested Btrfs subvolume
       ansible.builtin.shell:
         cmd: btrfs subvolume create {{ service_home }}/data/custom_apps && chmod 0755 {{ service_home }}/data/custom_apps
