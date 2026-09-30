@@ -11,7 +11,6 @@ nextcloud_service_db_password: ""
 nextcloud_service_admin_password: ""
 
 nextcloud_service_admin_user: admin
-nextcloud_service_trusted_proxies: "127.0.0.1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16"
 
 nextcloud_service_php_max_children: 8
 nextcloud_service_php_memory_limit: 512M

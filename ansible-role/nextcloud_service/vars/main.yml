@@ -7,6 +7,9 @@ nextcloud_service_config_defaults:
     trusted_domains: ["{{ nextcloud_service_hostname }}"]
     overwrite.cli.url: "{{ nextcloud_service_url }}"
     overwriteprotocol: https
+    # The proxy's traffic arrives through the host.
+    trusted_proxies: [127.0.0.1, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
+    forwarded_for_headers: [HTTP_X_REAL_IP]
     maintenance_window_start: 1
     log_type: syslog
     log_type_audit: syslog
@@ -41,4 +44,4 @@ quadlet_service_secrets:
   nextcloud_service_admin_password: "{{ nextcloud_service_admin_password }}"
 quadlet_service_memory: "{{ nextcloud_service_memory_defaults | combine(nextcloud_service_memory) }}"
 
-nextcloud_service_occ: podman exec -u www-data nextcloud-app php /var/www/html/occ
+nextcloud_service_occ: podman exec -i -u www-data nextcloud-app php /var/www/html/occ

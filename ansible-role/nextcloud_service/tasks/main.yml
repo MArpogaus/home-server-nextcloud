@@ -1,56 +1,48 @@
 ---
-# An existing data or config dir belongs to a subuid Ansible cannot write through.
-- name: Check which service directories exist
-  ansible.builtin.stat:
-    path: "{{ service_home }}/{{ item }}"
-  loop:
-    - data/db_data
-    - data/data
-    - data/config
-    - bin
-  register: nextcloud_service_dirs
-
-- name: Create the missing service directories
-  ansible.builtin.file:
-    path: "{{ service_home }}/{{ item.item }}"
-    state: directory
-    owner: "{{ service_name }}"
-    group: "{{ service_name }}"
-    mode: '0755'
-  loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
-  loop_control:
-    label: "{{ item.item }}"
-
-- name: Create custom_apps as a nested Btrfs subvolume
-  ansible.builtin.shell:
-    cmd: >-
-      btrfs subvolume create {{ service_home }}/data/custom_apps &&
-      chown {{ service_name }}:{{ service_name }} {{ service_home }}/data/custom_apps
-    creates: "{{ service_home }}/data/custom_apps"
-
-- name: Keep custom_apps traversable
-  ansible.builtin.file:
-    path: "{{ service_home }}/data/custom_apps"
-    mode: '0755'
-
-- name: Own the Nextcloud data and config dirs as the container www-data user
-  ansible.builtin.command:
-    cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
-  loop:
-    - data
-    - config
-    - custom_apps
+- name: Prepare the service home as the service user
   become: true
   become_user: "{{ service_name }}"
-  changed_when: false
+  block:
+    # An existing data or config dir belongs to a subuid the user cannot chmod.
+    - name: Check which service directories exist
+      ansible.builtin.stat:
+        path: "{{ service_home }}/{{ item }}"
+      loop:
+        - data/db_data
+        - data/data
+        - data/config
+        - bin
+      register: nextcloud_service_dirs
 
-- name: Deploy pre-snapshot pg_dumpall script
-  ansible.builtin.template:
-    src: pre-snapshot-pg-dump.sh.j2
-    dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
-    owner: "{{ service_name }}"
-    group: "{{ service_name }}"
-    mode: '0755'
+    - name: Create the missing service directories
+      ansible.builtin.file:
+        path: "{{ service_home }}/{{ item.item }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ nextcloud_service_dirs.results | rejectattr('stat.exists') | list }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # After the chown below the user can no longer chmod it.
+    - name: Create custom_apps as a traversable nested Btrfs subvolume
+      ansible.builtin.shell:
+        cmd: btrfs subvolume create {{ service_home }}/data/custom_apps && chmod 0755 {{ service_home }}/data/custom_apps
+        creates: "{{ service_home }}/data/custom_apps"
+
+    - name: Own the Nextcloud data and config dirs as the container www-data user
+      ansible.builtin.command:
+        cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
+      loop:
+        - data
+        - config
+        - custom_apps
+      changed_when: false
+
+    - name: Deploy pre-snapshot pg_dumpall script
+      ansible.builtin.template:
+        src: pre-snapshot-pg-dump.sh.j2
+        dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
+        mode: '0755'
 
 - name: Make room for the snapshot drop-in
   ansible.builtin.file:
@@ -78,11 +70,11 @@
     mode: '0644'
   notify: Reload systemd
 
-# The deploy time stands in for the first dump, so a dump that never succeeds
-# alerts 30 h after the deploy.
+# The deploy time stands in for the first success, so a job that never
+# succeeds alerts 30 h after the deploy.
 - name: Seed the dump freshness metric
   ansible.builtin.copy:
-    dest: /var/lib/node-textfile/dump-{{ service_name }}.prom
+    dest: "{{ base_setup_textfile_dir }}/dump-{{ service_name }}.prom"
     content: |
       dump_last_success_timestamp_seconds{service="{{ service_name }}"} {{ ansible_facts.date_time.epoch }}
     owner: root
@@ -99,8 +91,8 @@
   become_user: "{{ service_name }}"
   block:
     # Notify=healthy makes the unit active only once php-fpm listens, which is
-    # after the entrypoint's install or upgrade. As long as the app unit's
-    # TimeoutStartSec.
+    # after the entrypoint's install or upgrade. The wait, 180 × 10 s, matches
+    # the app unit's TimeoutStartSec.
     - name: Wait for the app container to become healthy
       ansible.builtin.systemd_service:
         name: nextcloud-app.service
@@ -135,6 +127,6 @@
 
     - name: Apply the merged config.php settings
       ansible.builtin.command:
-        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
+        cmd: "{{ nextcloud_service_occ }} config:import"
         stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
       changed_when: false
