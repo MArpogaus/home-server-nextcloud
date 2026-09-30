@@ -10,6 +10,9 @@ AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
 # on the socket alone.
 HealthCmd=pg_isready -h 127.0.0.1 -U nextcloud
 HealthInterval=10s
+# Nine failed checks in a row, 90 s, before the kill: a stall under memory
+# pressure is no reason to kill Postgres during a dump.
+HealthRetries=9
 HealthStartPeriod=300s
 HealthOnFailure=kill
 # The app starts only once the database accepts connections, also after the
