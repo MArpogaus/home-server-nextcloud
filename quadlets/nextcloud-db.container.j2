@@ -6,7 +6,20 @@ Secret=nextcloud_service_db_password
 Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
 # the entrypoint fixes the data dir, then gosu postgres.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
-HealthCmd=pg_isready -U nextcloud
-HealthInterval=30s
-HealthStartPeriod=60s
+# TCP, not the socket: the entrypoint's temporary first-start server listens
+# on the socket alone.
+HealthCmd=pg_isready -h 127.0.0.1 -U nextcloud
+HealthInterval=10s
+# Nine failed checks in a row, 90 s, before the kill: a stall under memory
+# pressure is no reason to kill Postgres during a dump.
+HealthRetries=9
+HealthStartPeriod=300s
 HealthOnFailure=kill
+# The app starts only once the database accepts connections, also after the
+# crash recovery of a restored data directory.
+Notify=healthy
+
+[Service]
+# The start covers the image pull, the relabel of db_data (:Z) and the
+# first start or the crash recovery.
+TimeoutStartSec=300
