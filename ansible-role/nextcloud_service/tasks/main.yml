@@ -133,6 +133,6 @@
 
     - name: Apply the merged config.php settings
       ansible.builtin.command:
-        cmd: podman exec -i -u www-data nextcloud-app php /var/www/html/occ config:import
+        cmd: "{{ nextcloud_service_occ }} config:import"
         stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
       changed_when: false

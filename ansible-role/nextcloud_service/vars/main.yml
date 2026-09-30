@@ -44,4 +44,4 @@ quadlet_service_secrets:
   nextcloud_service_admin_password: "{{ nextcloud_service_admin_password }}"
 quadlet_service_memory: "{{ nextcloud_service_memory_defaults | combine(nextcloud_service_memory) }}"
 
-nextcloud_service_occ: podman exec -u www-data nextcloud-app php /var/www/html/occ
+nextcloud_service_occ: podman exec -i -u www-data nextcloud-app php /var/www/html/occ
