@@ -24,7 +24,7 @@ The service follows the configuration interface in
 |---|---|---|
 | `nextcloud_service_hostname` | required | The public hostname; the URL and the first trusted domain |
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
-| `nextcloud_service_config` | `{}` | `config.php` keys, merged over `nextcloud_service_config_defaults` and set on every run |
+| `nextcloud_service_config` | `{}` | `config.php` keys, merged over `nextcloud_service_config_defaults` |
 | `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
 | `nextcloud_service_trusted_proxies` | loopback, RFC1918, link-local | The proxy's traffic arrives through the host |
@@ -33,6 +33,7 @@ The service follows the configuration interface in
 | `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
 | `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
 | `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
+| `nextcloud_service_*_image` | see `defaults/main.yml` | The images |
 
 The config can change every key, including the URL. More trusted domains: set
 `system.trusted_domains` in `nextcloud_service_config`. A list replaces the
@@ -57,7 +58,7 @@ kernel kills the largest worker and its request answers 502.
   applies `NEXTCLOUD_TRUSTED_DOMAINS` at the first install only.
 - `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
   out of backups. Its mode is `0755`, because nginx must traverse it.
-- The passwords are podman secrets, read at the first start only.
+- The passwords are Podman secrets, read at the first start only.
 - Nextcloud takes the client address from `X-Real-IP` alone, because a client
   can write `X-Forwarded-For`.
 - nginx, php-fpm, Nextcloud and crond log to syslog through `/dev/log`, so
@@ -72,8 +73,8 @@ kernel kills the largest worker and its request answers 502.
 - `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
   that an app's lexicon misses.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
-  `memory_limit=1G`, low-memory batch sizes and `concurrency.enabled=false`,
-  so a classify job that cron takes returns at once while the worker is busy.
+  `memory_limit=1G`, low-memory batch sizes and `concurrency.enabled=false`.
+  A classify job that cron takes then returns at once while the worker is busy.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours.
   Nothing clears it, because a timer could free a job that still runs.
 - The snapshot unit `Wants=` and `After=` the dump, so both run in one
@@ -82,18 +83,15 @@ kernel kills the largest worker and its request answers 502.
 ## Custom image
 
 `containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts and a
-php-fpm pool drop-in to `nextcloud:<major>-fpm`. The role sets its
-`config.php` values with `occ` (`nextcloud_service_config_defaults` merged
-with `nextcloud_service_config`), because the image copies its config files
-only into an empty config directory.
-The entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
-containers pass their script. `.github/workflows/build.yml` builds and signs
-each major in `versions`, and rebuilds when the base image changes. `main`
-publishes `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev`
-only when its vars set that tag. The major in `nextcloud_service_app_image`
-must be in `versions`, or the host pulls a tag that CI never published.
-`cosign.pub` verifies the signature. `home-server/ignition/config.bu.template`
-embeds the same key for the host's `policy.json`, so a new key goes into both.
+php-fpm pool drop-in to `nextcloud:<major>-fpm`. The entrypoint installs
+Nextcloud only for the command `php-fpm`, so the helper containers pass their
+script. `.github/workflows/build.yml` builds and signs each major in
+`versions`, and rebuilds when the base image changes. `main` publishes
+`:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev` only when its
+vars set that tag. The major in `nextcloud_service_app_image` must be in
+`versions`, or the host pulls a tag that CI never published. `cosign.pub`
+verifies the signature. `home-server/ignition/config.bu.template` embeds the
+same key for the host's `policy.json`, so a new key goes into both.
 
 ## Alerts
 
