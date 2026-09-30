@@ -20,7 +20,7 @@ The service follows the configuration interface in
 `home-server-template/README.md`, "Configuration interface".
 `ansible-role/nextcloud_service/defaults/main.yml` has the full list.
 
-| Variable | Default | Meaning |
+| Variable | Default | Controls |
 |---|---|---|
 | `nextcloud_service_hostname` | required | The public hostname; the URL and the first trusted domain |
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
@@ -53,8 +53,7 @@ kernel kills the largest worker and its request answers 502.
 - The role writes nothing into `config/` before the first start. The image
   copies `apps.config.php` (`apps_paths`) only into an empty directory;
   without it, apps land in `apps/`, which an upgrade wipes.
-- `occ config:import` sets the merged config keys on every run. The image
-  applies `NEXTCLOUD_TRUSTED_DOMAINS` at the first install only.
+- `occ config:import` sets the merged config keys on every run.
 - `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
   out of backups. Its mode is `0755`, because nginx must traverse it.
 - The passwords are Podman secrets, read at the first start only.

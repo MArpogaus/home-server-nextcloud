@@ -91,16 +91,12 @@
   become_user: "{{ service_name }}"
   block:
     # Notify=healthy makes the unit active only once php-fpm listens, which is
-    # after the entrypoint's install or upgrade. The wait, 180 × 10 s, matches
-    # the app unit's TimeoutStartSec.
+    # after the entrypoint's install or upgrade. systemctl start joins a running
+    # start job and waits, up to the unit's TimeoutStartSec; the module would
+    # return at once for an activating unit.
     - name: Wait for the app container to become healthy
-      ansible.builtin.systemd_service:
-        name: nextcloud-app.service
-        scope: user
-      register: nextcloud_service_app_state
-      until: nextcloud_service_app_state.status.ActiveState == "active"
-      retries: 180
-      delay: 10
+      ansible.builtin.command: systemctl --user start nextcloud-app.service  # noqa: command-instead-of-module
+      changed_when: false
 
     - name: Check that Nextcloud is installed and needs no upgrade
       ansible.builtin.command: >-
