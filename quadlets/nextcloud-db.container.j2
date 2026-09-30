@@ -7,6 +7,9 @@ Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
 # the entrypoint fixes the data dir, then gosu postgres.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
 HealthCmd=pg_isready -U nextcloud
-HealthInterval=30s
+HealthInterval=10s
 HealthStartPeriod=60s
 HealthOnFailure=kill
+# The app starts only once the database accepts connections, also after the
+# crash recovery of a restored data directory.
+Notify=healthy
