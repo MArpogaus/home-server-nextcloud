@@ -1,7 +1,8 @@
 # Contributing
 
 The branch flow, the hooks, the releases and the house style are in
-`home-server/CONTRIBUTING.md`.
+`home-server/CONTRIBUTING.md`. The rules a service follows are in
+`home-server-template/CONTRIBUTING.md`.
 
 ## Tags
 
