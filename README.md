@@ -20,7 +20,7 @@ The service follows the configuration interface in
 `home-server-template/README.md`, "Configuration interface".
 `ansible-role/nextcloud_service/defaults/main.yml` has the full list.
 
-| Variable | Default | Meaning |
+| Variable | Default | Controls |
 |---|---|---|
 | `nextcloud_service_hostname` | required | The public hostname; the URL and the first trusted domain |
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
