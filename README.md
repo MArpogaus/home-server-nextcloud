@@ -11,7 +11,7 @@ its signed app image. `home-server-bunker` puts the pod on the internet.
 | nextcloud-web | nginx; `status.php` health check | 128M |
 | nextcloud-cron | `cron.php` every 5 min | 2G |
 | nextcloud-preview | `preview:pre-generate` every 10 min, 1 CPU | 2G |
-| nextcloud-recognize | Recognize classifier worker, 3 CPUs | 2G |
+| nextcloud-recognize | Recognize classifier worker, 3 CPUs | 3G |
 | nextcloud-push | `notify_push` | 128M |
 
 ## Configuration
@@ -71,7 +71,8 @@ kernel kills the largest worker and its request answers 502.
 - `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
   that an app's lexicon misses.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
-  `memory_limit=1G`, low-memory batch sizes and `concurrency.enabled=false`.
+  `memory_limit=1536M`, batch sizes that fit its 3G ceiling and
+  `concurrency.enabled=false`.
   A classify job that cron takes then returns at once while the worker is busy.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
   pod restart kills the Recognize worker, so the worker script unlocks the

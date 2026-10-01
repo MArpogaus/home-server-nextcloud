@@ -28,7 +28,7 @@ nextcloud_service_memory_defaults:
   app: 2G
   cron: 2G
   preview: 2G
-  recognize: 2G
+  recognize: 3G
   db: 768M
   redis: 128M
   push: 128M
