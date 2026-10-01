@@ -22,8 +22,8 @@ J="OCA\\Recognize\\BackgroundJobs\\"
 JOB_CLASSES="${J}ClassifyImagenetJob ${J}ClassifyFacesJob ${J}ClassifyLandmarksJob ${J}ClassifyMovinetJob ${J}ClassifyMusicnnJob"
 
 # Nextcloud keeps a job reserved for 12 h after its process dies, and every
-# pod restart kills the worker. This container starts only after the old
-# worker is gone, so its reservations are stale.
+# pod restart kills the worker. A classify job that cron runs at this moment
+# returns at once, so freeing all classify jobs is safe.
 # shellcheck disable=SC2016,SC2086  # PHP code, one argument per class
 runuser -u www-data -- php -r '
 	require "/var/www/html/lib/base.php";
