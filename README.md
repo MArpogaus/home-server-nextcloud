@@ -73,10 +73,10 @@ kernel kills the largest worker and its request answers 502.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
   `memory_limit=1G`, low-memory batch sizes and `concurrency.enabled=false`.
   A classify job that cron takes then returns at once while the worker is busy.
-- A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours.
-  Every pod restart kills the Recognize worker, so the worker script unlocks
-  the classify jobs before the worker starts. Nothing clears other jobs, because a timer
-  could free a job that still runs.
+- A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
+  pod restart kills the Recognize worker, so the worker script unlocks the
+  classify jobs before the worker starts. Nothing clears other jobs, because a
+  timer could free a job that still runs.
 - The snapshot unit `Wants=` and `After=` the dump, so both run in one
   transaction. The dump has no timer.
 
