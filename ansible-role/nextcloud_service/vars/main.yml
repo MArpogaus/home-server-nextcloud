@@ -23,6 +23,23 @@ nextcloud_service_config_defaults:
   apps:
     notify_push:
       base_endpoint: "{{ nextcloud_service_url }}/push"
+    preview:
+      jpeg_quality: "80"
+    # Nextcloud rounds a preview request up to a power of 4; the Memories grid
+    # asks for 1024.
+    previewgenerator:
+      squareSizes: "64 256"
+      widthSizes: ""
+      heightSizes: ""
+      fillWidthHeightSizes: "256 1024 4096"
+      coverWidthHeightSizes: "256 1024 4096"
+    # Batch sizes for the 3G ceiling; README, "Specifics".
+    recognize:
+      concurrency.enabled: "false"
+      faces.batchSize: "100"
+      imagenet.batchSize: "40"
+      landmarks.batchSize: "20"
+      movinet.batchSize: "5"
 
 nextcloud_service_memory_defaults:
   app: 2G

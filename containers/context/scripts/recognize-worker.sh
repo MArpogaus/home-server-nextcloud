@@ -5,13 +5,9 @@ occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-occ app:install recognize || occ app:enable recognize
-APP_DIR="$(occ app:getpath recognize)"
-
-# Low-memory profile; README, "Specifics".
-for kv in concurrency.enabled=false faces.batchSize=100 imagenet.batchSize=40 landmarks.batchSize=20 movinet.batchSize=5; do
-	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
-done
+# The role installs the app and sets its batch sizes; a clean host gets it
+# after this container starts.
+until APP_DIR="$(occ app:getpath recognize 2>/dev/null)"; do sleep 30; done
 
 # The models and the node binary live in the app directory, gigabytes fetched once.
 if ! [ -x "$APP_DIR/bin/node" ] || ! find "$APP_DIR/models" -name '*.json' -print -quit 2>/dev/null | grep -q .; then
