@@ -25,8 +25,8 @@ nextcloud_service_config_defaults:
       base_endpoint: "{{ nextcloud_service_url }}/push"
     preview:
       jpeg_quality: "80"
-    # Nextcloud rounds a preview request up to a power of 4; the Memories grid
-    # asks for 1024.
+    # Nextcloud rounds a preview request up to a power of 4, so the Memories
+    # grid reads 1024.
     previewgenerator:
       squareSizes: "64 256"
       widthSizes: ""
