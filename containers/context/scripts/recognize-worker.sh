@@ -8,7 +8,8 @@ occ() {
 # The role installs the app and sets its batch sizes; a clean host gets it
 # after this container starts.
 echo "Waiting for the app recognize"
-until [ "$(occ config:app:get recognize enabled 2>/dev/null)" = yes ]; do sleep 30; done
+# enabled holds yes, no, or a JSON list of groups.
+until v="$(occ config:app:get recognize enabled 2>/dev/null)" && [ -n "$v" ] && [ "$v" != no ]; do sleep 30; done
 APP_DIR="$(occ app:getpath recognize)"
 
 # The models and the node binary live in the app directory, gigabytes fetched once.

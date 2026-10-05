@@ -129,3 +129,12 @@
         cmd: "{{ nextcloud_service_occ }} config:import"
         stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
       changed_when: false
+
+    # A job container waits for its app; HealthOnFailure=kill can stop one that
+    # waited too long. start brings it back and leaves a running one alone.
+    - name: Start the job containers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        scope: user
+        state: started
+      loop: [nextcloud-push.service, nextcloud-preview.service, nextcloud-recognize.service]

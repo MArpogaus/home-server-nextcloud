@@ -7,7 +7,8 @@ occ() {
 
 # The role installs the app; a clean host gets it after this container starts.
 echo "Waiting for the app notify_push"
-until [ "$(occ config:app:get notify_push enabled 2>/dev/null)" = yes ]; do sleep 30; done
+# enabled holds yes, no, or a JSON list of groups.
+until v="$(occ config:app:get notify_push enabled 2>/dev/null)" && [ -n "$v" ] && [ "$v" != no ]; do sleep 30; done
 APP_DIR="$(occ app:getpath notify_push)"
 BIN="${APP_DIR}/bin/$(uname -m)/notify_push"
 
