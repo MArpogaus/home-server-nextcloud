@@ -13,6 +13,9 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
+# The pod's nginx, so Nextcloud sees push as the trusted proxy 127.0.0.1; the
+# public URL would come back through the proxy from the WAN address.
+Environment=NEXTCLOUD_URL=http://127.0.0.1
 Exec=/notify_push.sh
 RunInit=true
 StopSignal=SIGTERM
