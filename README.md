@@ -37,8 +37,7 @@ The service follows the configuration interface in
 The config can change every key, including the URL. More trusted domains: set
 `system.trusted_domains` in `nextcloud_service_config`. A list replaces the
 default list. The preview sizes and the Recognize batch sizes are app settings
-under `apps`; the deploy sets each with `occ config:app:set`, which keeps the
-type that an app stored.
+under `apps`; the deploy applies them with `occ config:import`.
 
 The app's memory ceiling (2G) is the PHP budget. `max_children` ×
 `memory_limit` can pass it; when the workers and `/tmp` together reach it, the
@@ -75,10 +74,10 @@ kernel kills the largest worker and its request answers 502.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
   `memory_limit=1536M`. The batch sizes in `apps.recognize` fit its 3G
   ceiling, and `concurrency.enabled` is `false`.
-  A classify job that cron takes then returns at once while the worker is busy.
 - Nextcloud rounds a preview request up to a power of 4. The Memories grid
-  asks for 339 to 909 pixels and reads the 1024 version, so
-  `apps.previewgenerator` sets 64, 256, 1024 and 4096.
+  asks for 339 to 909 pixels and reads the 1024 version, so the preview
+  container pre-generates 64, 256, 1024 and 4096.
+  A classify job that cron takes then returns at once while the worker is busy.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
   pod restart kills the Recognize worker, so the worker script unlocks the
   classify jobs before the worker starts. Nothing clears other jobs, because a

@@ -62,12 +62,3 @@ quadlet_service_secrets:
 quadlet_service_memory: "{{ nextcloud_service_memory_defaults | combine(nextcloud_service_memory) }}"
 
 nextcloud_service_occ: podman exec -i -u www-data nextcloud-app php /var/www/html/occ
-nextcloud_service_config_merged: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) }}"
-nextcloud_service_app_settings: >-
-  {%- set ns = namespace(items=[]) -%}
-  {%- for app, keys in (nextcloud_service_config_merged.apps | default({})).items() -%}
-  {%- for key, value in keys.items() -%}
-  {%- set ns.items = ns.items + [{'app': app, 'key': key, 'value': value | string}] -%}
-  {%- endfor -%}
-  {%- endfor -%}
-  {{ ns.items }}
