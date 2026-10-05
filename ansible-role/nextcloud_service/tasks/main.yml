@@ -108,6 +108,14 @@
         or (nextcloud_service_status.stdout | from_json).needsDbUpgrade
       changed_when: false
 
+    # Before the apps, so the settings land even when an app cannot be enabled;
+    # config:import sets the keys of an app that is not installed yet.
+    - name: Apply the merged system and app settings
+      ansible.builtin.command:
+        cmd: "{{ nextcloud_service_occ }} config:import"
+        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
+      changed_when: false
+
     - name: Read which apps are enabled
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} app:list --output=json"
@@ -123,12 +131,6 @@
       changed_when: true
       vars:
         nextcloud_service_installed: "{{ (nextcloud_service_app_list.stdout | from_json).disabled }}"
-
-    - name: Apply the merged system and app settings
-      ansible.builtin.command:
-        cmd: "{{ nextcloud_service_occ }} config:import"
-        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
-      changed_when: false
 
     # A job container waits for its app; HealthOnFailure=kill can stop one that
     # waited too long. start brings it back and leaves a running one alone.
