@@ -33,4 +33,4 @@ runuser -u www-data -- php -r '
 # Not `exec occ`: occ is a shell function, and exec needs a real binary.
 # shellcheck disable=SC2086  # one argument per class
 exec runuser -u www-data -- \
-	php -d memory_limit=1536M /var/www/html/occ background-job:worker -v ${JOB_CLASSES}
+	php -d memory_limit=1536M /var/www/html/occ background-job:worker ${JOB_CLASSES}
