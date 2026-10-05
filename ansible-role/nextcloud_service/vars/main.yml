@@ -10,7 +10,8 @@ nextcloud_service_config_defaults:
     overwriteprotocol: https
     # The proxy's traffic arrives through the host.
     trusted_proxies: [127.0.0.1, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
-    forwarded_for_headers: [HTTP_X_REAL_IP]
+    # The proxy sets X-Real-IP; notify_push passes a client on in X-Forwarded-For.
+    forwarded_for_headers: [HTTP_X_REAL_IP, HTTP_X_FORWARDED_FOR]
     maintenance_window_start: 1
     log_type: syslog
     log_type_audit: syslog
