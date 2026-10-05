@@ -31,7 +31,7 @@ The service follows the configuration interface in
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
 | `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
 | `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
-| `nextcloud_service_apps` | `[admin_audit, notify_push, previewgenerator, recognize]` | Apps to install or enable; the file activity panels need `admin_audit`, the job containers the other three. An override replaces the list, so it keeps them |
+| `nextcloud_service_apps` | `[admin_audit, notify_push, previewgenerator, recognize]` | Apps to install or enable; the file activity panels need `admin_audit`, the job containers the other three. An override replaces the list, so it must list them too |
 | `nextcloud_service_*_image` | see `defaults/main.yml` | The images |
 
 The config can change every key, including the URL. More trusted domains: set

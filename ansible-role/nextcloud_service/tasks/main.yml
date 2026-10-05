@@ -124,7 +124,7 @@
       vars:
         nextcloud_service_installed: "{{ (nextcloud_service_app_list.stdout | from_json).disabled }}"
 
-    - name: Apply the merged config.php settings
+    - name: Apply the merged system and app settings
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} config:import"
         stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
