@@ -37,8 +37,8 @@ The service follows the configuration interface in
 The config can change every key, including the URL. More trusted domains: set
 `system.trusted_domains` in `nextcloud_service_config`. A list replaces the
 default list. The preview sizes and the Recognize batch sizes are app settings
-under `apps`; every deploy applies them with `occ config:import`, which takes
-a string or an integer for an app value, so quote `true` and `false`.
+under `apps`; every deploy sets each with `occ config:app:set`, which keeps the
+type that an app stored. Quote `true` and `false`, or YAML hands over `True`.
 
 The app's memory ceiling (2G) is the PHP budget. `max_children` ×
 `memory_limit` can pass it; when the workers and `/tmp` together reach it, the
