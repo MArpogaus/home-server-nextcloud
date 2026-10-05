@@ -127,5 +127,15 @@
     - name: Apply the merged config.php settings
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} config:import"
-        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
+        stdin: "{{ {'system': nextcloud_service_config_merged.system} | to_json }}"
+      changed_when: false
+
+    # config:app:set keeps a key's stored type; config:import refuses a key that
+    # an app's admin page stored as a string.
+    - name: Apply the merged app settings
+      ansible.builtin.command:
+        argv: "{{ nextcloud_service_occ.split() + ['config:app:set', item.app, item.key, '--value=' ~ item.value] }}"
+      loop: "{{ nextcloud_service_app_settings }}"
+      loop_control:
+        label: "{{ item.app }} {{ item.key }}"
       changed_when: false
