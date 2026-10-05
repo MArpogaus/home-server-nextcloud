@@ -18,11 +18,16 @@ nextcloud_service_php_upload_limit: 15G
 
 nextcloud_service_db_dump_retention_days: 30
 
-# The file activity panels read the admin_audit log.
+# The file activity panels read the admin_audit log; the job containers run
+# notify_push, previewgenerator and recognize.
 nextcloud_service_apps:
   - admin_audit
+  - notify_push
+  - previewgenerator
+  - recognize
 
-# config.php keys, merged over nextcloud_service_config_defaults in vars/main.yml.
+# config.php keys (system) and app settings (apps), merged over
+# nextcloud_service_config_defaults in vars/main.yml.
 nextcloud_service_config: {}
 # Memory ceilings per container, merged over nextcloud_service_memory_defaults.
 nextcloud_service_memory: {}

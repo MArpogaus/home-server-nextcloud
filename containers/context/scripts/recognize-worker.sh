@@ -5,13 +5,12 @@ occ() {
 	runuser -u www-data -- php /var/www/html/occ "$@"
 }
 
-occ app:install recognize || occ app:enable recognize
+# The role installs the app and sets its batch sizes; a clean host gets it
+# after this container starts.
+echo "Waiting for the app recognize"
+# enabled holds yes, no, or a JSON list of groups.
+until v="$(occ config:app:get recognize enabled 2>/dev/null)" && [ -n "$v" ] && [ "$v" != no ]; do sleep 30; done
 APP_DIR="$(occ app:getpath recognize)"
-
-# Low-memory profile; README, "Specifics".
-for kv in concurrency.enabled=false faces.batchSize=100 imagenet.batchSize=40 landmarks.batchSize=20 movinet.batchSize=5; do
-	occ config:app:set recognize "${kv%%=*}" --value="${kv##*=}"
-done
 
 # The models and the node binary live in the app directory, gigabytes fetched once.
 if ! [ -x "$APP_DIR/bin/node" ] || ! find "$APP_DIR/models" -name '*.json' -print -quit 2>/dev/null | grep -q .; then
@@ -37,4 +36,4 @@ runuser -u www-data -- php -r '
 # Not `exec occ`: occ is a shell function, and exec needs a real binary.
 # shellcheck disable=SC2086  # one argument per class
 exec runuser -u www-data -- \
-	php -d memory_limit=1536M /var/www/html/occ background-job:worker -v ${JOB_CLASSES}
+	php -d memory_limit=1536M /var/www/html/occ background-job:worker ${JOB_CLASSES}

@@ -24,19 +24,21 @@ The service follows the configuration interface in
 |---|---|---|
 | `nextcloud_service_hostname` | required | The public hostname; the URL and the first trusted domain |
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
-| `nextcloud_service_config` | `{}` | `config.php` keys, merged over `nextcloud_service_config_defaults` |
+| `nextcloud_service_config` | `{}` | `config.php` keys (`system`) and app settings (`apps`), merged over `nextcloud_service_config_defaults` |
 | `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
 | `nextcloud_service_php_upload_limit` | `15G` | PHP and pod nginx body limit; BunkerWeb has its own `MAX_CLIENT_SIZE` |
 | `nextcloud_service_db_dump_retention_days` | `30` | Dump age before pruning |
-| `nextcloud_service_apps` | `[admin_audit]` | Apps to enable; the file activity panels need `admin_audit` |
+| `nextcloud_service_apps` | `[admin_audit, notify_push, previewgenerator, recognize]` | Apps to install or enable; the file activity panels need `admin_audit`, the job containers the other three. An override replaces the list, so it must list them too |
 | `nextcloud_service_*_image` | see `defaults/main.yml` | The images |
 
 The config can change every key, including the URL. More trusted domains: set
 `system.trusted_domains` in `nextcloud_service_config`. A list replaces the
-default list.
+default list. The preview sizes and the Recognize batch sizes are app settings
+under `apps`; every deploy applies them with `occ config:import`, which takes
+a string or an integer for an app value, so quote `true` and `false`.
 
 The app's memory ceiling (2G) is the PHP budget. `max_children` ×
 `memory_limit` can pass it; when the workers and `/tmp` together reach it, the
@@ -53,7 +55,6 @@ kernel kills the largest worker and its request answers 502.
 - The role writes nothing into `config/` before the first start. The image
   copies `apps.config.php` (`apps_paths`) only into an empty directory;
   without it, apps land in `apps/`, which an upgrade wipes.
-- `occ config:import` sets the merged config keys on every run.
 - `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
   out of backups. Its mode is `0755`, because nginx must traverse it.
 - The passwords are Podman secrets, read at the first start only.
@@ -71,9 +72,12 @@ kernel kills the largest worker and its request answers 502.
 - `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
   that an app's lexicon misses.
 - `nextcloud-recognize` runs the five `Classify*Job` classes with
-  `memory_limit=1536M`, batch sizes that fit its 3G ceiling and
-  `concurrency.enabled=false`.
+  `memory_limit=1536M`. The batch sizes in `apps.recognize` fit its 3G
+  ceiling, and `concurrency.enabled` is `false`.
   A classify job that cron takes then returns at once while the worker is busy.
+- Nextcloud rounds a preview request up to a power of 4. The Memories grid
+  asks for 339 to 909 pixels and reads the 1024 version, so
+  `apps.previewgenerator` sets 64, 256, 1024 and 4096.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
   pod restart kills the Recognize worker, so the worker script unlocks the
   classify jobs before the worker starts. Nothing clears other jobs, because a

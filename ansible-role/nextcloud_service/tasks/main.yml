@@ -108,21 +108,35 @@
         or (nextcloud_service_status.stdout | from_json).needsDbUpgrade
       changed_when: false
 
+    # Before the apps, so the settings land even when an app cannot be enabled;
+    # config:import sets the keys of an app that is not installed yet.
+    - name: Apply the merged system and app settings
+      ansible.builtin.command:
+        cmd: "{{ nextcloud_service_occ }} config:import"
+        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
+      changed_when: false
+
     - name: Read which apps are enabled
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} app:list --output=json"
       register: nextcloud_service_app_list
       changed_when: false
 
-    - name: Enable the apps the deployment needs
+    # app:install fetches a store app; a shipped or disabled app only needs app:enable.
+    - name: Install or enable the apps the deployment needs
       ansible.builtin.command:
-        cmd: "{{ nextcloud_service_occ }} app:enable {{ item }}"
+        cmd: "{{ nextcloud_service_occ }} {{ 'app:enable' if item in nextcloud_service_installed else 'app:install' }} {{ item }}"
       loop: "{{ nextcloud_service_apps }}"
       when: item not in (nextcloud_service_app_list.stdout | from_json).enabled
       changed_when: true
+      vars:
+        nextcloud_service_installed: "{{ (nextcloud_service_app_list.stdout | from_json).disabled }}"
 
-    - name: Apply the merged config.php settings
-      ansible.builtin.command:
-        cmd: "{{ nextcloud_service_occ }} config:import"
-        stdin: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) | to_json }}"
-      changed_when: false
+    # A job container waits for its app, and push's health check can kill it
+    # meanwhile. start brings a stopped one back and leaves a running one alone.
+    - name: Start the job containers
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        scope: user
+        state: started
+      loop: [nextcloud-push.service, nextcloud-preview.service, nextcloud-recognize.service]
