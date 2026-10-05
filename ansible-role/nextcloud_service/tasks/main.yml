@@ -132,8 +132,8 @@
       vars:
         nextcloud_service_installed: "{{ (nextcloud_service_app_list.stdout | from_json).disabled }}"
 
-    # A job container waits for its app; HealthOnFailure=kill can stop one that
-    # waited too long. start brings it back and leaves a running one alone.
+    # A job container waits for its app, and push's health check can kill it
+    # meanwhile. start brings a stopped one back and leaves a running one alone.
     - name: Start the job containers
       ansible.builtin.systemd_service:
         name: "{{ item }}"
