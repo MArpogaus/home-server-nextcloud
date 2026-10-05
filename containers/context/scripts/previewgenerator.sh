@@ -7,6 +7,7 @@ occ() {
 
 # The role installs the app and sets its sizes; a clean host gets it after this
 # container starts.
+echo "Waiting for the app previewgenerator"
 until [ "$(occ config:app:get previewgenerator enabled 2>/dev/null)" = yes ]; do sleep 30; done
 
 # flock: a backlog pass outlasts the interval.

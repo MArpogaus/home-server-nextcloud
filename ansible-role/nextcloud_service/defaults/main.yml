@@ -19,9 +19,10 @@ nextcloud_service_php_upload_limit: 15G
 nextcloud_service_db_dump_retention_days: 30
 
 # The file activity panels read the admin_audit log; the job containers run
-# previewgenerator and recognize.
+# notify_push, previewgenerator and recognize.
 nextcloud_service_apps:
   - admin_audit
+  - notify_push
   - previewgenerator
   - recognize
 
