@@ -7,7 +7,8 @@ occ() {
 
 # The role installs the app and sets its batch sizes; a clean host gets it
 # after this container starts.
-until APP_DIR="$(occ app:getpath recognize 2>/dev/null)"; do sleep 30; done
+until [ "$(occ config:app:get recognize enabled 2>/dev/null)" = yes ]; do sleep 30; done
+APP_DIR="$(occ app:getpath recognize)"
 
 # The models and the node binary live in the app directory, gigabytes fetched once.
 if ! [ -x "$APP_DIR/bin/node" ] || ! find "$APP_DIR/models" -name '*.json' -print -quit 2>/dev/null | grep -q .; then
