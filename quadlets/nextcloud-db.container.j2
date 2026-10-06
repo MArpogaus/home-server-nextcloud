@@ -6,9 +6,9 @@ Secret=nextcloud_service_db_password
 Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
 # the entrypoint fixes the data dir, then gosu postgres.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
-# The SSD and autovacuum part of Nextcloud AIO's tuning; its larger work_mem
-# and maintenance_work_mem do not fit the memory ceiling, which shared_buffers
-# and the pod's /dev/shm count against.
+# The SSD and autovacuum part of Nextcloud AIO's tuning. Its larger work_mem
+# and maintenance_work_mem do not fit the memory ceiling. shared_buffers and
+# the pod's /dev/shm count against that ceiling.
 Exec=postgres -c shared_buffers=256MB -c effective_cache_size=1GB -c random_page_cost=1.1 -c effective_io_concurrency=200 -c checkpoint_timeout=15min -c autovacuum_vacuum_scale_factor=0.05 -c autovacuum_analyze_scale_factor=0.02
 # TCP, not the socket: the entrypoint's temporary first-start server listens
 # on the socket alone.
