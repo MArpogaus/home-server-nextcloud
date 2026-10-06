@@ -90,7 +90,9 @@ kernel kills the largest worker and its request answers 502.
 `containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts and a
 php-fpm pool drop-in to `nextcloud:<major>-fpm`. The entrypoint installs
 Nextcloud only for the command `php-fpm`, so the helper containers pass their
-script. `.github/workflows/build.yml` builds and signs each major in
+script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It runs
+`maintenance:repair --include-expensive` and adds missing indices, columns
+and primary keys. `.github/workflows/build.yml` builds and signs each major in
 `versions`, and rebuilds when the base image changes. `main` publishes
 `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev` only when its
 vars set that tag. The major in `nextcloud_service_app_image` must be in
