@@ -90,9 +90,10 @@ kernel kills the largest worker and its request answers 502.
 ## Custom image
 
 `containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts, a
-php-fpm pool drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The entrypoint installs
-Nextcloud only for the command `php-fpm`, so the helper containers pass their
-script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It runs
+php-fpm pool drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The
+pool drop-in kills a worker after `max_execution_time` of wall time. The
+entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
+containers pass their script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It runs
 `maintenance:repair --include-expensive` and adds missing indices, columns
 and primary keys. `.github/workflows/build.yml` builds and signs each major in
 `versions`, and rebuilds when the base image changes. `main` publishes
