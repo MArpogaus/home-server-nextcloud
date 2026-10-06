@@ -59,9 +59,9 @@ reach it, the kernel kills the largest worker and its request answers 502.
   at 3/4 of its memory ceiling.
 - Before each snapshot, `pg_dumpall` writes the database into the service
   subvolume, so the snapshot holds a consistent copy.
-- `nextcloud-recognize` runs the five `Classify*Job` classes with
-  `memory_limit=1536M`. The batch sizes in `apps.recognize` fit its 3G
-  ceiling, and `concurrency.enabled` is `false`.
+- `nextcloud-recognize` runs the five `Classify*Job` classes with a PHP
+  `memory_limit` of half its memory ceiling. The batch sizes in
+  `apps.recognize` fit the 3G default, and `concurrency.enabled` is `false`.
 - Nextcloud rounds a preview request up to a power of 4. The Memories grid
   asks for 339 to 909 pixels and reads the 1024 version, so
   `apps.previewgenerator` sets 64, 256, 1024 and 4096.

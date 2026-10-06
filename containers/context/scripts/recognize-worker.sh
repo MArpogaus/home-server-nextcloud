@@ -28,4 +28,4 @@ runuser -u www-data -- php -r '
 
 # shellcheck disable=SC2086
 exec runuser -u www-data -- \
-	php -d memory_limit=1536M /var/www/html/occ background-job:worker ${JOB_CLASSES}
+	php -d memory_limit="${RECOGNIZE_MEMORY_LIMIT}" /var/www/html/occ background-job:worker ${JOB_CLASSES}
