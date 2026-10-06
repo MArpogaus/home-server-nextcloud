@@ -22,6 +22,13 @@ nextcloud_service_config_defaults:
     preview_max_x: 4096
     preview_max_y: 4096
     preview_max_scale_factor: 1
+    # Image stands for PNG, JPEG, GIF, BMP, XBitmap, Krita and WebP. HEIC
+    # needs Imagick with libheif, Movie needs ffmpeg; the image has both.
+    enabledPreviewProviders:
+      - OC\Preview\Image
+      - OC\Preview\HEIC
+      - OC\Preview\TIFF
+      - OC\Preview\Movie
   apps:
     notify_push:
       base_endpoint: "{{ nextcloud_service_url }}/push"

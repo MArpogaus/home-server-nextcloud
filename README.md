@@ -78,6 +78,8 @@ kernel kills the largest worker and its request answers 502.
 - Nextcloud rounds a preview request up to a power of 4. The Memories grid
   asks for 339 to 909 pixels and reads the 1024 version, so
   `apps.previewgenerator` sets 64, 256, 1024 and 4096.
+- `system.enabledPreviewProviders` makes previews of images, HEIC, TIFF and
+  videos only. Text and office files get no previews.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
   pod restart kills the Recognize worker, so the worker script unlocks the
   classify jobs before the worker starts. Nothing clears other jobs, because a
