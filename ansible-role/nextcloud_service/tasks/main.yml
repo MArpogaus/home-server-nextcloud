@@ -10,7 +10,6 @@
         - data/db_data
         - data/data
         - data/config
-        - bin
       register: nextcloud_service_dirs
 
     - name: Create the missing service directories
@@ -35,48 +34,6 @@
         - config
         - custom_apps
       changed_when: false
-
-    - name: Deploy pre-snapshot pg_dumpall script
-      ansible.builtin.template:
-        src: pre-snapshot-pg-dump.sh.j2
-        dest: "{{ service_home }}/bin/pre-snapshot-pg-dump.sh"
-        mode: '0755'
-
-- name: Make room for the snapshot drop-in
-  ansible.builtin.file:
-    path: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d
-    state: directory
-    owner: root
-    mode: '0755'
-
-- name: Snapshot the data only after the dump
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/btrfs-snapshot@{{ service_name }}.service.d/after-dump.conf
-    content: |
-      [Unit]
-      Wants={{ service_name }}-pg-dumpall.service
-      After={{ service_name }}-pg-dumpall.service
-    owner: root
-    mode: '0644'
-  notify: Reload systemd
-
-- name: Template the pg_dumpall service
-  ansible.builtin.template:
-    src: pg-dumpall.service.j2
-    dest: /etc/systemd/system/{{ service_name }}-pg-dumpall.service
-    owner: root
-    mode: '0644'
-  notify: Reload systemd
-
-- name: Seed the dump freshness metric
-  ansible.builtin.copy:
-    dest: "{{ base_setup_textfile_dir }}/dump-{{ service_name }}.prom"
-    content: |
-      dump_last_success_timestamp_seconds{service="{{ service_name }}"} {{ ansible_facts.date_time.epoch }}
-    owner: root
-    mode: '0644'
-    setype: container_ro_file_t
-    force: false
 
 - name: Deploy the Quadlets
   ansible.builtin.import_role:
