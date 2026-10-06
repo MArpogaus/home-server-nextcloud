@@ -3,6 +3,11 @@ Image={{ nextcloud_service_redis_image }}
 ContainerName=nextcloud-redis
 # chown of /data, then gosu redis.
 AddCapability=CHOWN SETGID SETUID
+# Cache and file locks need no snapshots. The cap evicts keys before the
+# memory ceiling kills Redis.
+# A bare --save turns snapshots off; Quadlet drops an empty "" argument and
+# everything after it.
+Exec=redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save
 HealthCmd=redis-cli ping
 HealthInterval=30s
 HealthOnFailure=kill
