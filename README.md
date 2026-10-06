@@ -93,8 +93,8 @@ reach it, the kernel kills the largest worker and its request answers 502.
 drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The entrypoint
 installs Nextcloud only for the command `php-fpm`, so the helper containers pass
 their script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It
-runs `maintenance:repair --include-expensive` and adds missing indices, columns
-and primary keys. `.github/workflows/build.yml` builds and signs each major in
+updates the mimetypes of the file cache and adds missing indices, columns and
+primary keys. `.github/workflows/build.yml` builds and signs each major in
 `versions`, and rebuilds when the base image changes. `main` publishes
 `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev` only when its
 vars set that tag. The major in `nextcloud_service_app_image` must be in
