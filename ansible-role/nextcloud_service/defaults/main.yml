@@ -25,3 +25,4 @@ nextcloud_service_apps:
 
 nextcloud_service_config: {}
 nextcloud_service_memory: {}
+nextcloud_service_cpu: {}

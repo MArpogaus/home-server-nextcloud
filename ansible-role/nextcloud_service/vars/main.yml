@@ -50,6 +50,9 @@ nextcloud_service_memory_defaults:
   redis: 128M
   push: 128M
   web: 128M
+nextcloud_service_cpu_defaults:
+  preview: 100%
+  recognize: 300%
 
 quadlet_service_required:
   service_port: '^[0-9]+$'
@@ -60,6 +63,7 @@ quadlet_service_secrets:
   nextcloud_service_db_password: "{{ nextcloud_service_db_password }}"
   nextcloud_service_admin_password: "{{ nextcloud_service_admin_password }}"
 quadlet_service_memory: "{{ nextcloud_service_memory_defaults | combine(nextcloud_service_memory) }}"
+quadlet_service_cpu: "{{ nextcloud_service_cpu_defaults | combine(nextcloud_service_cpu) }}"
 
 nextcloud_service_occ: podman exec -i -u www-data nextcloud-app php /var/www/html/occ
 nextcloud_service_config_merged: "{{ nextcloud_service_config_defaults | combine(nextcloud_service_config, recursive=true) }}"
