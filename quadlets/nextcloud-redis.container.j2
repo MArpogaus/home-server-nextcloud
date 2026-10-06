@@ -7,7 +7,7 @@ AddCapability=CHOWN SETGID SETUID
 # memory ceiling kills Redis.
 # A bare --save turns snapshots off; Quadlet drops an empty "" argument and
 # everything after it.
-Exec=redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru --save
+Exec=redis-server --maxmemory {{ (quadlet_service_memory.redis | human_to_bytes * 3) // 4 }} --maxmemory-policy allkeys-lru --save
 HealthCmd=redis-cli ping
 HealthInterval=30s
 HealthOnFailure=kill
