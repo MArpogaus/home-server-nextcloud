@@ -52,8 +52,8 @@ reach it, the kernel kills the largest worker and its request answers 502.
 - The passwords are Podman secrets, read at the first start only.
 - Nextcloud takes the client address from `X-Real-IP`, which BunkerWeb sets.
 - Postgres has the SSD and autovacuum part of the Nextcloud AIO tuning.
-  `shared_buffers` (256 MB) and the pod's `/dev/shm` (256 MB) count against
-  its memory ceiling.
+  `shared_buffers` is a third of its memory ceiling, and `effective_cache_size`
+  the whole ceiling. The pod's `/dev/shm` (256 MB) also counts against it.
 - Redis holds the cache and the file locks in memory only. It evicts old keys
   at 3/4 of its memory ceiling.
 - Before each snapshot, `pg_dumpall` writes the database into the service
