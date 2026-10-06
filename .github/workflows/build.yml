@@ -14,15 +14,11 @@ on:
 
 permissions: {}
 
-# Two runs on one ref publish the same tags and would overwrite each other's
-# digest between signing and verification.
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # A scheduled run on the default branch starts the same check on main, whose
-  # tags production follows.
   schedule-main:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -33,7 +29,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  # Scheduled checks build only the majors whose base image digest moved.
   changed:
     runs-on: ubuntu-latest
     outputs:
@@ -45,12 +40,10 @@ jobs:
           SUFFIX: ${{ github.ref_name == 'dev' && '-dev' || '' }}
         run: |
           set -euo pipefail
-          # Every major a host runs.
           versions="35"
           tags=()
           for t in $versions; do
             if [ "${ONLY_CHANGED}" != "true" ]; then tags+=("$t"); continue; fi
-            # Both sides are index digests, the same skopeo call the action records.
             base=$(skopeo inspect --format '{{.Digest}}' "docker://docker.io/library/nextcloud:${t}-fpm")
             built=$(skopeo inspect --format '{{index .Labels "org.opencontainers.image.base.digest"}}' \
               "docker://ghcr.io/marpogaus/nextcloud:${t}${SUFFIX}" 2>/dev/null || echo none)
@@ -60,7 +53,6 @@ jobs:
 
   build:
     needs: changed
-    # workflow_dispatch has no branch filter: only main and dev publish and sign.
     if: >-
       needs.changed.outputs.tags != '[]'
       && (github.ref_name == 'main' || github.ref_name == 'dev')
