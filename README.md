@@ -78,8 +78,8 @@ kernel kills the largest worker and its request answers 502.
 - Nextcloud rounds a preview request up to a power of 4. The Memories grid
   asks for 339 to 909 pixels and reads the 1024 version, so
   `apps.previewgenerator` sets 64, 256, 1024 and 4096.
-- `system.enabledPreviewProviders` makes previews of images, HEIC, TIFF and
-  videos only. Text and office files get no previews.
+- `system.enabledPreviewProviders` limits previews to images, HEIC, TIFF and
+  videos. PDF, text and office files get none.
 - A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
   pod restart kills the Recognize worker, so the worker script unlocks the
   classify jobs before the worker starts. Nothing clears other jobs, because a
@@ -89,13 +89,13 @@ kernel kills the largest worker and its request answers 502.
 
 ## Custom image
 
-`containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts, a
-php-fpm pool drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The
-pool drop-in kills a worker after `max_execution_time` of wall time. The
-entrypoint installs Nextcloud only for the command `php-fpm`, so the helper
-containers pass their script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It runs
-`maintenance:repair --include-expensive` and adds missing indices, columns
-and primary keys. `.github/workflows/build.yml` builds and signs each major in
+`containers/Containerfile` adds ffmpeg, the helper scripts, a php-fpm pool
+drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The pool drop-in
+kills a worker after `max_execution_time` of wall time. The entrypoint
+installs Nextcloud only for the command `php-fpm`, so the helper containers
+pass their script. After an upgrade, the entrypoint runs the `post-upgrade`
+hook. It runs `maintenance:repair --include-expensive` and adds missing
+indices, columns and primary keys. `.github/workflows/build.yml` builds and signs each major in
 `versions`, and rebuilds when the base image changes. `main` publishes
 `:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev` only when its
 vars set that tag. The major in `nextcloud_service_app_image` must be in
