@@ -14,3 +14,6 @@ HealthCmd=wget -qO /dev/null http://127.0.0.1/status.php
 HealthInterval=60s
 HealthStartPeriod=30s
 HealthOnFailure=kill
+
+[Service]
+TimeoutStartSec=300
