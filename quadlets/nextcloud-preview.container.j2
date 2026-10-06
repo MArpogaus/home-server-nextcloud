@@ -12,6 +12,7 @@ Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
 Volume={{ service_home }}/data/data:/var/www/html/data:z
 Volume={{ service_home }}/data/config:/var/www/html/config:z
 Volume=/dev/log:/dev/log
+Environment="PREVIEW_SCHEDULE={{ nextcloud_service_preview_schedule }}"
 Exec=/previewgenerator.sh
 RunInit=true
 StopSignal=SIGTERM

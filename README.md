@@ -26,6 +26,7 @@ The service follows the configuration interface in
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
 | `nextcloud_service_config` | `{}` | `config.php` keys (`system`) and app settings (`apps`), merged over `nextcloud_service_config_defaults` |
 | `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
+| `nextcloud_service_preview_schedule` | `*/10 * * * *` | When `preview:pre-generate` runs, as a crontab time |
 | `nextcloud_service_cpu` | `{}` | CPU quotas per container, merged over `preview: 100%` and `recognize: 300%` |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |

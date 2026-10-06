@@ -26,3 +26,4 @@ nextcloud_service_apps:
 nextcloud_service_config: {}
 nextcloud_service_memory: {}
 nextcloud_service_cpu: {}
+nextcloud_service_preview_schedule: "*/10 * * * *"
