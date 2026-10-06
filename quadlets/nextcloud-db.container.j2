@@ -19,6 +19,8 @@ HealthInterval=10s
 HealthRetries=9
 HealthStartPeriod=300s
 HealthOnFailure=kill
+# Podman's 10 s kill would force a crash recovery after each nightly update.
+StopTimeout=120
 # The app starts only once the database accepts connections, also after the
 # crash recovery of a restored data directory.
 Notify=healthy
@@ -27,3 +29,4 @@ Notify=healthy
 # The start covers the image pull, the relabel of db_data (:Z) and the
 # first start or the crash recovery.
 TimeoutStartSec=300
+TimeoutStopSec=150
