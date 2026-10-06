@@ -1,16 +1,12 @@
 ---
 nextcloud_service_url: "https://{{ nextcloud_service_hostname }}"
 
-# Every deploy sets these keys, system with occ config:import and apps with
-# occ config:app:set; the rest of config.php stays.
 nextcloud_service_config_defaults:
   system:
     trusted_domains: ["{{ nextcloud_service_hostname }}"]
     overwrite.cli.url: "{{ nextcloud_service_url }}"
     overwriteprotocol: https
-    # The proxy's traffic arrives through the host.
     trusted_proxies: [127.0.0.1, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
-    # The proxy sets X-Real-IP; notify_push passes a client on in X-Forwarded-For.
     forwarded_for_headers: [HTTP_X_REAL_IP, HTTP_X_FORWARDED_FOR]
     maintenance_window_start: 1
     log_type: syslog
@@ -22,8 +18,6 @@ nextcloud_service_config_defaults:
     preview_max_x: 4096
     preview_max_y: 4096
     preview_max_scale_factor: 1
-    # Image stands for PNG, JPEG, GIF, BMP, XBitmap, Krita and WebP. HEIC
-    # needs Imagick with libheif, Movie needs ffmpeg; the image has both.
     enabledPreviewProviders:
       - OC\Preview\Image
       - OC\Preview\HEIC
@@ -34,15 +28,12 @@ nextcloud_service_config_defaults:
       base_endpoint: "{{ nextcloud_service_url }}/push"
     preview:
       jpeg_quality: "80"
-    # Nextcloud rounds a preview request up to a power of 4, so the Memories
-    # grid reads 1024.
     previewgenerator:
       squareSizes: "64 256"
       widthSizes: ""
       heightSizes: ""
       fillWidthHeightSizes: "256 1024 4096"
       coverWidthHeightSizes: "256 1024 4096"
-    # Batch sizes for the 3G ceiling; README, "Specifics".
     recognize:
       concurrency.enabled: "false"
       faces.batchSize: "100"

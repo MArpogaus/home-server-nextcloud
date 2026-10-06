@@ -2,7 +2,6 @@ groups:
   - name: nextcloud
     interval: 1m
     rules:
-      # PANIC only: every client that connects before the server is ready logs FATAL.
       - alert: NextcloudDatabasePanic
         expr: |
           sum(count_over_time({service="nextcloud", user_unit="nextcloud-db.service"} |= "PANIC" [15m])) > 0

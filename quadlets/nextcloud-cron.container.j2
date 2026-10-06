@@ -6,7 +6,6 @@ Image={{ nextcloud_service_app_image }}
 ContainerName=nextcloud-cron
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password
-# crond runs cron.php as www-data.
 AddCapability=SETGID SETUID
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
@@ -18,6 +17,5 @@ RunInit=true
 StopSignal=SIGTERM
 
 [Service]
-# Creating the container relabels the data volume (:z); the time grows with the data.
 TimeoutStartSec=300
 SuccessExitStatus=143

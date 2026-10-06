@@ -1,5 +1,4 @@
 #!/bin/bash
-# Dumps into the service subvolume, so the nightly snapshot holds a consistent database.
 set -euo pipefail
 umask 077
 
@@ -10,13 +9,11 @@ DUMP_FILE="${DUMP_DIR}/dump-${TIMESTAMP}.sql"
 mkdir -p "$DUMP_DIR"
 rm -f "$DUMP_DIR"/*.tmp
 
-# The snapshot timer is Persistent and can fire at boot, before the pod is up.
 for _ in $(seq 1 60); do
 	podman exec -u postgres nextcloud-db pg_isready -q -U nextcloud && break
 	sleep 5
 done
 
-# lock_timeout ends a lock wait inside the container, which the unit timeout cannot.
 podman exec -e PGOPTIONS='-c lock_timeout=900000' -u postgres nextcloud-db \
 	pg_dumpall -U nextcloud > "${DUMP_FILE}.tmp"
 mv "${DUMP_FILE}.tmp" "$DUMP_FILE"
