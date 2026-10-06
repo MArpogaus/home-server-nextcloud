@@ -28,11 +28,7 @@
 
     - name: Own the Nextcloud data and config dirs as the container www-data user
       ansible.builtin.command:
-        cmd: podman unshare chown 33:33 {{ service_home }}/data/{{ item }}
-      loop:
-        - data
-        - config
-        - custom_apps
+        cmd: podman unshare chown 33:33 {{ service_home }}/data/data {{ service_home }}/data/config {{ service_home }}/data/custom_apps
       changed_when: false
 
 - name: Deploy the Quadlets
