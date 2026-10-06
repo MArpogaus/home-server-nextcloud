@@ -4,22 +4,16 @@ ContainerName=nextcloud-db
 EnvironmentFile=./configs/db.env
 Secret=nextcloud_service_db_password
 Volume={{ service_home }}/data/db_data:/var/lib/postgresql/data:Z
-# the entrypoint fixes the data dir, then gosu postgres.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID
-# TCP, not the socket: the entrypoint's temporary first-start server listens
-# on the socket alone.
+Exec=postgres -c shared_buffers={{ quadlet_service_memory.db | human_to_bytes // 3 // 1048576 }}MB -c effective_cache_size={{ quadlet_service_memory.db | human_to_bytes // 1048576 }}MB -c random_page_cost=1.1 -c effective_io_concurrency=200 -c checkpoint_timeout=15min -c autovacuum_vacuum_scale_factor=0.05 -c autovacuum_analyze_scale_factor=0.02
 HealthCmd=pg_isready -h 127.0.0.1 -U nextcloud
 HealthInterval=10s
-# Nine failed checks in a row, 90 s, before the kill: a stall under memory
-# pressure is no reason to kill Postgres during a dump.
 HealthRetries=9
 HealthStartPeriod=300s
 HealthOnFailure=kill
-# The app starts only once the database accepts connections, also after the
-# crash recovery of a restored data directory.
+StopTimeout=120
 Notify=healthy
 
 [Service]
-# The start covers the image pull, the relabel of db_data (:Z) and the
-# first start or the crash recovery.
 TimeoutStartSec=300
+TimeoutStopSec=150

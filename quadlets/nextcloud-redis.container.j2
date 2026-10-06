@@ -1,8 +1,8 @@
 [Container]
 Image={{ nextcloud_service_redis_image }}
 ContainerName=nextcloud-redis
-# chown of /data, then gosu redis.
 AddCapability=CHOWN SETGID SETUID
+Exec=redis-server --maxmemory {{ (quadlet_service_memory.redis | human_to_bytes * 3) // 4 }} --maxmemory-policy allkeys-lru --save
 HealthCmd=redis-cli ping
 HealthInterval=30s
 HealthOnFailure=kill

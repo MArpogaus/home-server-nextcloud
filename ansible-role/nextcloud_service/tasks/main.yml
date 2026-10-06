@@ -3,7 +3,6 @@
   become: true
   become_user: "{{ service_name }}"
   block:
-    # An existing data or config dir belongs to a subuid the user cannot chmod.
     - name: Check which service directories exist
       ansible.builtin.stat:
         path: "{{ service_home }}/{{ item }}"
@@ -23,7 +22,6 @@
       loop_control:
         label: "{{ item.item }}"
 
-    # After the chown below the user can no longer chmod it.
     - name: Create custom_apps as a traversable nested Btrfs subvolume
       ansible.builtin.shell:
         cmd: btrfs subvolume create {{ service_home }}/data/custom_apps && chmod 0755 {{ service_home }}/data/custom_apps
@@ -70,8 +68,6 @@
     mode: '0644'
   notify: Reload systemd
 
-# The deploy time stands in for the first success, so a job that never
-# succeeds alerts 30 h after the deploy.
 - name: Seed the dump freshness metric
   ansible.builtin.copy:
     dest: "{{ base_setup_textfile_dir }}/dump-{{ service_name }}.prom"
@@ -90,10 +86,6 @@
   become: true
   become_user: "{{ service_name }}"
   block:
-    # Notify=healthy makes the unit active only once php-fpm listens, which is
-    # after the entrypoint's install or upgrade. systemctl start joins a running
-    # start job and waits, up to the unit's TimeoutStartSec; the module would
-    # return at once for an activating unit.
     - name: Wait for the app container to become healthy
       ansible.builtin.command: systemctl --user start nextcloud-app.service  # noqa: command-instead-of-module
       changed_when: false
@@ -108,16 +100,12 @@
         or (nextcloud_service_status.stdout | from_json).needsDbUpgrade
       changed_when: false
 
-    # Before the apps, so the settings land even when an app cannot be enabled;
-    # both commands set the keys of an app that is not installed yet.
     - name: Apply the merged system settings
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} config:import"
         stdin: "{{ {'system': nextcloud_service_config_merged.system} | to_json }}"
       changed_when: false
 
-    # config:import refuses a key that an app's admin page stored as a lazy
-    # string; config:app:set keeps the stored type.
     - name: Apply the merged app settings
       ansible.builtin.command:
         argv: "{{ nextcloud_service_occ.split() + ['config:app:set', item.app, item.key, '--value=' ~ item.value] }}"
@@ -132,7 +120,6 @@
       register: nextcloud_service_app_list
       changed_when: false
 
-    # app:install fetches a store app; a shipped or disabled app only needs app:enable.
     - name: Install or enable the apps the deployment needs
       ansible.builtin.command:
         cmd: "{{ nextcloud_service_occ }} {{ 'app:enable' if item in nextcloud_service_installed else 'app:install' }} {{ item }}"
@@ -142,8 +129,6 @@
       vars:
         nextcloud_service_installed: "{{ (nextcloud_service_app_list.stdout | from_json).disabled }}"
 
-    # A job container waits for its app, and push's health check can kill it
-    # meanwhile. start brings a stopped one back and leaves a running one alone.
     - name: Start the job containers
       ansible.builtin.systemd_service:
         name: "{{ item }}"

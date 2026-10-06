@@ -5,8 +5,8 @@ its signed app image. `home-server-bunker` puts the pod on the internet.
 
 | Container | Job | Default memory ceiling |
 |---|---|---|
-| nextcloud-db | PostgreSQL | 768M |
-| nextcloud-redis | Cache | 128M |
+| nextcloud-db | PostgreSQL, tuned for an SSD host | 768M |
+| nextcloud-redis | Cache and file locks, memory only, capped at 3/4 of its ceiling | 128M |
 | nextcloud-app | PHP-FPM, custom image | 2G |
 | nextcloud-web | nginx; `status.php` health check | 128M |
 | nextcloud-cron | `cron.php` every 5 min | 2G |
@@ -26,6 +26,8 @@ The service follows the configuration interface in
 | `nextcloud_service_db_password`, `_admin_password` | required | Podman secrets |
 | `nextcloud_service_config` | `{}` | `config.php` keys (`system`) and app settings (`apps`), merged over `nextcloud_service_config_defaults` |
 | `nextcloud_service_memory` | `{}` | Memory ceilings per container, merged over the table above |
+| `nextcloud_service_preview_schedule` | `*/10 * * * *` | When `preview:pre-generate` runs, as a crontab time |
+| `nextcloud_service_cpu` | `{}` | CPU quotas per container, merged over `preview: 100%` and `recognize: 300%` |
 | `nextcloud_service_admin_user` | `admin` | Admin of the first install |
 | `nextcloud_service_php_max_children` | `8` | php-fpm workers |
 | `nextcloud_service_php_memory_limit` | `512M` | PHP limit per worker |
@@ -41,62 +43,53 @@ under `apps`; every deploy sets each with `occ config:app:set`, which keeps the
 type that an app stored.
 
 The app's memory ceiling (2G) is the PHP budget. `max_children` ×
-`memory_limit` can pass it; when the workers and `/tmp` together reach it, the
-kernel kills the largest worker and its request answers 502.
+`memory_limit` can pass it; when the workers, the opcache and `/tmp` together
+reach it, the kernel kills the largest worker and its request answers 502.
 
 ## Specifics
 
-- The job containers (cron, preview, recognize, push) run with `RunInit=true`,
-  `StopSignal=SIGTERM` and `SuccessExitStatus=143`: a shell or crond as PID 1
-  ignores the image's `SIGQUIT`. cron runs `busybox crond -S`, because the
-  image's `/cron.sh` opens `/dev/stdout` by path. nginx starts with
-  `-e stderr`, because it opens its built-in log path before it reads the
-  config.
-- The role writes nothing into `config/` before the first start. The image
-  copies `apps.config.php` (`apps_paths`) only into an empty directory;
-  without it, apps land in `apps/`, which an upgrade wipes.
 - `data/custom_apps` is a nested subvolume, so apps and Recognize models stay
-  out of backups. Its mode is `0755`, because nginx must traverse it.
+  out of backups.
 - The passwords are Podman secrets, read at the first start only.
-- Nextcloud takes the client address from `X-Real-IP` alone, because a client
-  can write `X-Forwarded-For`.
-- nginx, php-fpm, Nextcloud and crond log to syslog through `/dev/log`, so
-  each line keeps its own ident and severity. Container stdout and stderr
-  carry only `info` and `err`. Nextcloud has no stdout log type: `errorlog`
-  writes to the php-fpm worker's stderr, which php-fpm discards.
-- The nginx access log has few JSON fields: syslog cuts a line at 1024 bytes.
-  It omits the Referer and `$remote_user`, which can carry a share token.
-- `monitoring/alloy-redact.txt` has one line with an alternative per `{token}`
-  route in `appinfo/routes.php`, and a second line for the audit log's
-  `token "…"`.
-- `monitoring/alloy-drop.txt` drops Nextcloud's info line about a config key
-  that an app's lexicon misses.
-- `nextcloud-recognize` runs the five `Classify*Job` classes with
-  `memory_limit=1536M`. The batch sizes in `apps.recognize` fit its 3G
-  ceiling, and `concurrency.enabled` is `false`.
-  A classify job that cron takes then returns at once while the worker is busy.
+- Nextcloud takes the client address from `X-Real-IP`, which BunkerWeb sets.
+- Postgres has the SSD and autovacuum part of the Nextcloud AIO tuning.
+  `shared_buffers` is a third of its memory ceiling, and `effective_cache_size`
+  the whole ceiling. The pod's `/dev/shm` (256 MB) also counts against it.
+- Redis holds the cache and the file locks in memory only. It evicts old keys
+  at 3/4 of its memory ceiling.
+- Before each snapshot, `pg_dumpall` writes the database into the service
+  subvolume, so the snapshot holds a consistent copy.
+- `nextcloud-recognize` runs the five `Classify*Job` classes with a PHP
+  `memory_limit` of half its memory ceiling. The batch sizes in
+  `apps.recognize` fit the 3G default, and `concurrency.enabled` is `false`.
 - Nextcloud rounds a preview request up to a power of 4. The Memories grid
   asks for 339 to 909 pixels and reads the 1024 version, so
   `apps.previewgenerator` sets 64, 256, 1024 and 4096.
-- A job whose process dies keeps `reserved_at` in `oc_jobs` for 12 hours. Every
-  pod restart kills the Recognize worker, so the worker script unlocks the
-  classify jobs before the worker starts. Nothing clears other jobs, because a
-  timer could free a job that still runs.
-- The snapshot unit `Wants=` and `After=` the dump, so both run in one
-  transaction. The dump has no timer.
+- `system.enabledPreviewProviders` limits previews to images, HEIC, TIFF and
+  videos. PDF, text and office files get none.
+- nginx, php-fpm, Nextcloud and crond log to syslog through `/dev/log`, so
+  each line keeps its own ident and severity. The nginx access log omits the
+  Referer and `$remote_user`, which can carry a share token.
+- `monitoring/alloy-redact.txt` has one line with an alternative per `{token}`
+  route in `appinfo/routes.php`, and a second line for the audit log's
+  `token "…"`. `monitoring/alloy-drop.txt` drops Nextcloud's info line about a
+  config key that an app's lexicon misses.
 
 ## Custom image
 
-`containers/Containerfile` adds ffmpeg, ghostscript, the helper scripts and a
-php-fpm pool drop-in to `nextcloud:<major>-fpm`. The entrypoint installs
-Nextcloud only for the command `php-fpm`, so the helper containers pass their
-script. `.github/workflows/build.yml` builds and signs each major in
-`versions`, and rebuilds when the base image changes. `main` publishes
-`:<major>` and `dev` publishes `:<major>-dev`; a host runs `-dev` only when its
-vars set that tag. The major in `nextcloud_service_app_image` must be in
-`versions`, or the host pulls a tag that CI never published. `cosign.pub`
-verifies the signature. `home-server/ignition/config.bu.template` embeds the
-same key for the host's `policy.json`, so a new key goes into both.
+`containers/Containerfile` adds ffmpeg, the helper scripts, a php-fpm pool
+drop-in and larger opcache limits to `nextcloud:<major>-fpm`. The entrypoint
+installs Nextcloud only for the command `php-fpm`, so the helper containers pass
+their script. After an upgrade, the entrypoint runs the `post-upgrade` hook. It
+adds the new version's mimetypes and missing indices, columns and primary keys.
+A failed command does not stop the start. JIT is off, as in Nextcloud AIO.
+`.github/workflows/build.yml` builds and signs each major in `versions`, and
+rebuilds when the base image changes. `main` publishes `:<major>` and `dev`
+publishes `:<major>-dev`; a host runs `-dev` only when its vars set that tag.
+The major in `nextcloud_service_app_image` must be in `versions`, or the host
+pulls a tag that CI never published. `cosign.pub` verifies the signature.
+`home-server/ignition/config.bu.template` embeds the same key for the host's
+`policy.json`, so a new key goes into both.
 
 ## Alerts
 

@@ -7,9 +7,7 @@ ContainerName=nextcloud-app
 EnvironmentFile=./configs/nextcloud.env
 Secret=nextcloud_service_db_password
 Secret=nextcloud_service_admin_password
-# rsync/chown of the tree, then php-fpm forks www-data workers and signals them.
 AddCapability=CHOWN DAC_OVERRIDE FOWNER SETGID SETUID KILL
-# exec: Nextcloud runs helpers from /tmp. size: the tmpfs counts against Memory=.
 Tmpfs=/tmp:exec,size=512M
 Volume=nc-app-html:/var/www/html:z
 Volume={{ service_home }}/data/custom_apps:/var/www/html/custom_apps:z
@@ -22,5 +20,4 @@ HealthStartPeriod=60s
 Notify=healthy
 
 [Service]
-# A major upgrade runs occ upgrade before php-fpm listens.
 TimeoutStartSec=1800
