@@ -1,4 +1,7 @@
 [Pod]
 PodName=nextcloud
+# Postgres's parallel queries need more than Podman's 64 MB; the containers of
+# a pod share one /dev/shm.
+ShmSize=256m
 # Loopback only. Other pods reach it through their pasta options.
 PublishPort=127.0.0.1:{{ service_port }}:80
