@@ -41,8 +41,9 @@ under `apps`; every deploy sets each with `occ config:app:set`, which keeps the
 type that an app stored.
 
 The app's memory ceiling (2G) is the PHP budget. `max_children` ×
-`memory_limit` can pass it; when the workers and `/tmp` together reach it, the
-kernel kills the largest worker and its request answers 502.
+`memory_limit` can pass it; when the workers, the 256 MB opcache and `/tmp`
+together reach it, the kernel kills the largest worker and its request answers
+502.
 
 ## Specifics
 
