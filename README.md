@@ -5,7 +5,7 @@ its signed app image. `home-server-bunker` puts the pod on the internet.
 
 | Container | Job | Default memory ceiling |
 |---|---|---|
-| nextcloud-db | PostgreSQL | 768M |
+| nextcloud-db | PostgreSQL, tuned for an SSD host | 768M |
 | nextcloud-redis | Cache and file locks, memory only, capped at 96 MB | 128M |
 | nextcloud-app | PHP-FPM, custom image | 2G |
 | nextcloud-web | nginx; `status.php` health check | 128M |
