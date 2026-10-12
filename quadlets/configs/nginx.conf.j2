@@ -89,6 +89,7 @@ http {
 
         location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)  { return 404; }
         location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console)                { return 404; }
+        location ~ ^/(?:composer\.(?:json|lock)|package(?:-lock)?\.json|core/shipped\.json)$ { return 404; }
 
         location ~ \.php(?:$|/) {
             rewrite ^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|ocs-provider\/.+|.+\/richdocumentscode(_arm64)?\/proxy) /index.php$request_uri;
