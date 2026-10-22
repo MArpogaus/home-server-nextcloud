@@ -1,0 +1,95 @@
+name: Build and publish a container image
+
+permissions: {}
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: true
+      containerfile:
+        type: string
+        required: true
+      context:
+        type: string
+        required: false
+        default: .   # as in the composite action, so a caller may omit it
+      platform:
+        type: string
+        required: true
+      slsa-verify-source:
+        type: string
+        required: false
+        default: ''
+      cosign-public-key:
+        type: string
+        required: false
+        default: ''
+      build-args:
+        type: string
+        required: false
+        default: ''
+      free-disk-space:
+        type: boolean
+        required: false
+        default: true
+      overwrite-ref-tag:
+        type: string
+        required: false
+        default: ''
+      latest-tag:
+        type: boolean
+        required: false
+        default: true
+    secrets:
+      SIGNING_SECRET:
+        required: true
+
+jobs:
+  build_and_push_image:
+    runs-on: ubuntu-latest
+    outputs:
+      FULL_IMAGE_REF: ${{ steps.build.outputs.full-image-ref }}
+      IMAGE_DIGEST: ${{ steps.build.outputs.image-digest }}
+    permissions:
+      contents: read
+      packages: write
+      # No id-token here: this job signs with --key env://, and only the
+      # provenance job below needs an OIDC token.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Build and Push Image
+        id: build
+        uses: MArpogaus/image-builder-action@23ecaddddb8ce6c07fc4e50b96c1eecae2006f36 # v1.8.1
+        with:
+          image-name: ${{ inputs.image-name }}
+          containerfile: ${{ inputs.containerfile }}
+          context: ${{ inputs.context }}
+          platform: ${{ inputs.platform }}
+          slsa-verify-source: ${{ inputs.slsa-verify-source }}
+          cosign-public-key: ${{ inputs.cosign-public-key }}
+          build-args: ${{ inputs.build-args }}
+          free-disk-space: ${{ inputs.free-disk-space }}
+          overwrite-ref-tag: ${{ inputs.overwrite-ref-tag }}
+          latest-tag: ${{ inputs.latest-tag }}
+          signing-secret: ${{ secrets.SIGNING_SECRET }}
+
+  provenance:
+    needs: [build_and_push_image]
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      id-token: write
+      packages: write
+    # The one exception to SHA pinning: the SLSA generator verifies its own
+    # invocation ref and refuses to run when called by digest.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+    with:
+      image: ${{ needs.build_and_push_image.outputs.FULL_IMAGE_REF }}
+      digest: ${{ needs.build_and_push_image.outputs.IMAGE_DIGEST }}
+      registry-username: ${{ github.actor }}
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
