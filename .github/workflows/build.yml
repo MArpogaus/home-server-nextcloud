@@ -66,7 +66,7 @@ jobs:
       actions: read
       packages: write
       id-token: write
-    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@23ecaddddb8ce6c07fc4e50b96c1eecae2006f36 # v1.8.1
+    uses: MArpogaus/image-builder-action/.github/workflows/reusable-build-and-publish-one-image.yml@77cdc8d1189ed4b12a1195433ddd1aca7c7d3439 # v1.7.0
     with:
       image-name: nextcloud
       containerfile: ./containers/Containerfile
